@@ -283,7 +283,7 @@ class PPOImitation(pposgd_simple.PPO1):
                     # ob, ac, atarg, ret, td1ret = map(np.concatenate, (obs, acs, atargs, rets, td1rets))
                     observations, actions = seg["observations"], seg["actions"]
                     atarg, tdlamret = seg["adv"], seg["tdlamret"]
-
+                    print(actions)
                     # true_rew is the reward without discount
                     if writer is not None:
                         total_episode_reward_logger(self.episode_reward,

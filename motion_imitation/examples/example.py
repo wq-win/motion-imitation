@@ -35,7 +35,7 @@ def test(env):
   while 1:
     a = laikago.INIT_MOTOR_ANGLES
     a = env.action_space.sample()
-    a*= 0
+    # a*= 0
     a[1] = 1
     # time.sleep(0.1)
     print(a)

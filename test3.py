@@ -66,7 +66,7 @@ def cal_action(PN, PNtoKCweight, activate_KC_dims, KCtoMBONweight):
     return action
 
 action = cal_action(PN, PNtoKCweight, activate_KC_dims, KCtoMBONweight)
-# action *= 0
+action *= 1e-5
 i = 0
 # while i:
 while True:

@@ -17,7 +17,7 @@ from motion_imitation.robots import robot_config
 
 FLAGS = flags.FLAGS
 flags.DEFINE_enum('robot_type', 'A1', ['A1', 'Laikago'], 'Robot Type.')
-flags.DEFINE_enum('motor_control_mode', 'Torque',
+flags.DEFINE_enum('motor_control_mode', 'Position',
                   ['Torque', 'Position', 'Hybrid'], 'Motor Control Mode.')
 flags.DEFINE_bool('on_rack', False, 'Whether to put the robot on rack.')
 
@@ -40,7 +40,8 @@ def main(_):
 
   env.reset()
   for _ in tqdm(range(1000)):
-    _, _, done, _ = env.step(env.action_space.sample())
+    o, _, done, _ = env.step(env.action_space.sample())
+    print(o[12:24])
     if done:
       # break
       env.reset()

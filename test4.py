@@ -81,12 +81,14 @@ pace = [
   [0.68773, 0.00000, 0.43701, 0.50903, 0.51581, 0.49242, 0.48203, -0.12785, 0.09815, -0.95073, -0.26299, 0.10340, -1.12756, -0.23415, 0.13683, -0.78085, -0.07723, 0.11886, -1.01564]
 ]
 action_list = np.array(pace)[:, 7:]
-i = 13
+i = 28
 while True:
     i = i % len(action_list)
     action = action_list[i]
+    action *= 2
     o, r, d, _ = env.step(action)
-    print(o[:84])
+    print(action, "\n")
+    print(o[12:24])
     env.render(mode='rgb_array')
 
     # if i%100==0:
