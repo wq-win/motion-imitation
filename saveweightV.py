@@ -51,23 +51,32 @@ pace = [
 
 # print(goal_joint_velocity)
 # print(i.as_quat())
+def calculate_mean(data):
+    data_dim = data.shape[1]
+    average = np.array([abs(data[:, i]).mean() for i in range(data_dim)])
+    return average
+
+
 
 def generate_data(random_num, data):
     imu_euler, joint_angle = data
+    imu_average = calculate_mean(imu_euler)
+    joint_angle_average = calculate_mean(joint_angle)
     sample_dim = 4 + joint_angle.shape[1]
     ref_num = imu_euler.shape[0]
     data = {"input": np.empty((ref_num*random_num, sample_dim)),
             "label": np.empty((ref_num*random_num, joint_angle.shape[1]))}
     for i in range(random_num):
-        imu_euler_noised = imu_euler + np.random.normal(0, 2 * np.pi * noise_factor, size=imu_euler.shape)
+        imu_euler_noised = imu_euler + np.random.normal(0, 2 * np.pi * noise_factor * imu_average, size=imu_euler.shape)
         imu_euler_noised_R = R.from_euler("XYZ", imu_euler_noised)
         imu_euler_noised_quat = imu_euler_noised_R.as_quat()
         # print(imu_euler_noised_quat)
         # Obs_noised = Obs + np.random.normal(0,,size=Obs.shape)
 
-        joint_angle_noised = joint_angle + np.random.normal(0, 2 * np.pi * noise_factor, size=joint_angle.shape)
-        goal_joint_angle = np.vstack((pace[1:, 7:], pace[:1, 7:]))
+        joint_angle_noised = joint_angle + np.random.normal(0, 2 * np.pi * noise_factor * joint_angle_average, size=joint_angle.shape)
+        goal_joint_angle = np.vstack((pace[3:, 7:], pace[:3, 7:]))
         goal_joint_velocity = ((goal_joint_angle - joint_angle_noised) / timestep)
+
 
         data["input"][i*ref_num:(i+1)*ref_num, :] = np.hstack((imu_euler_noised_quat, joint_angle_noised))
         data["label"][i*ref_num:(i+1)*ref_num, :] = goal_joint_velocity
@@ -94,7 +103,7 @@ def learning_loop(KCtoMBONweight, KC, learning_rate, epochs, activate_indices):
 
 if __name__ == "__main__":
 
-    pace = np.array(pace)
+    pace = np.array(pace) 
     ref_len = pace.shape[0]
     imu_quat = pace[:, 3:7]
     imu = R.from_quat(imu_quat)
@@ -103,26 +112,28 @@ if __name__ == "__main__":
     # r1 = r_trans*r
 
     imu_transformed = r.as_matrix() @ imu.as_matrix()
+    
     imu_R = R.from_matrix(imu_transformed)
+    # print("imu:",imu_R)
     imu_euler = imu_R.as_euler('XYZ', degrees=False)
     joint_angle = pace[:, 7:]
     loss_list = []
 
     timestep = 0.01667
     timestep = 1 / 60
-    noise_factor = 0.01
-    random_times = 1000
+    noise_factor = 0.005
+    random_times = 100
 
-    learning_rate = 1e-4
-    epsilon = 1 - 2e-4
+    learning_rate = 4e-5
+    epsilon = 1 - 2e-5
     epochs = 20  # 迭代次数
-    episode = 1000
+    episode = 10000
     batch_size = 512
 
     PN_dims = 16
     KC_dims = 10000
     MBON_dims = 12
-    weights_PN2KC_full = np.random.normal(0, 1, (KC_dims, PN_dims))
+    weights_PN2KC_full = np.random.normal(0, 0.01, (KC_dims, PN_dims))
     PN_smaple_rate = 0.25
     num_dim_PN_sampled = int(PN_dims * PN_smaple_rate)
     KC_activation_rate = 0.05 # percentage of KC activatity level
@@ -132,7 +143,7 @@ if __name__ == "__main__":
     top_weight_indices = weight_sorted_indices[:, -num_dim_PN_sampled:]
     weights_PN2KC = np.zeros_like(weights_PN2KC_full)
     weights_PN2KC[np.arange(KC_dims)[:, None], top_weight_indices] = 1/num_dim_PN_sampled
-    KCtoMBONweight = np.random.normal(0, 1/num_dim_KC_activated, size=(MBON_dims, KC_dims))
+    KCtoMBONweight = np.random.normal(0, 0.01/num_dim_KC_activated, size=(MBON_dims, KC_dims))
 
 
 
@@ -147,22 +158,31 @@ if __name__ == "__main__":
         PN = np.array(data["input"][sample_index])
         goal_joint_velocity = np.array(data["label"][sample_index])
         KC_input = (weights_PN2KC @ PN.T).T
+   
+
         sorted_indices = np.argsort(KC_input)
         activate_indices = sorted_indices[:, -num_dim_KC_activated:, ]
         inactivate_indices = sorted_indices[:, :-num_dim_KC_activated]
-        KC_input[np.arange(KC_input.shape[0])[:, None], inactivate_indices] = 0
-        # KC = KC_input/np.sum(KC_input, axis=1, keepdims=1)
-        KC = KC_input
+        KC_input[np.arange(KC_input.shape[0])[:, None], inactivate_indices] = 0.2
 
+        # with np.printoptions(threshold=np.inf):
+        #     print("KC_input:")
+        #     print(KC_input[0])
+        # # print(KC_input[0])
+        KC_V = np.tanh((KC_input-0.2) * 5)
+        with np.printoptions(threshold=np.inf):
+            print(KC_V[0])
+        # KC = KC_V/np.sum(KC_V, axis=1, keepdims=1)
+        KC = KC_V
+        # if i % 100 == 0:
+        #     print(i)
         KCtoMBONweight, loss, loss_list_epoch, learning_rate, gradient_max = \
             learning_loop(KCtoMBONweight, KC, learning_rate, epochs, activate_indices)
         loss_list.extend(loss_list_epoch)
         # print(loss)
-        # with np.printoptions(threshold=np.inf):
-        #     print("KC_input:")
-        #     print(KC_input[0])
-        tqdm.write("loss: %f, learning_rate: %f, max_KC_input[0]: %f, gradient_max: %f"
-              %(loss_list[-1], learning_rate, max(KC_input[0]), gradient_max))
+
+        tqdm.write("loss: %f, learning_rate: %f, max_KC_V[0]: %f, gradient_max: %f"
+              %(loss_list[-1], learning_rate, max(KC_V[0]), gradient_max))
 
     plt.plot(range(len(loss_list)), loss_list)
     plt.show()

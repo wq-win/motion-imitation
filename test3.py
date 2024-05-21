@@ -5,6 +5,7 @@ import os
 import numpy as np
 from tqdm import tqdm
 import pickle  
+from DynamicSynapse2D import DynamicSynapseArray
 # python3 -m motion_imitation.examples.test_env_gui --robot_type=A1 --motor_control_mode=Position --on_rack=True
 # python3 -m motion_imitation.examples.test_env_gui --robot_type=Laikago --motor_control_mode=Position --on_rack=True
 # python3 -m motion_imitation.examples.test_env_gui --robot_type=A1 --motor_control_mode=Torque --on_rack=True
@@ -17,7 +18,9 @@ def cal_action(PN, PNtoKCweight, activate_KC_dims, KCtoMBONweight):
     inactivate_indices = sorted_indices[activate_KC_dims:]
     KC[inactivate_indices] = 0
     action = KCtoMBONweight @ KC.T
+    # action = PN[3:] + action * 
     return action
+
 
 if __name__=="__main__":
     DEFAULT_JOINT_POSE = np.array([0, 0.67, -1.25, 0, 0.67, -1.25, 0, 0.67, -1.25, 0, 0.67, -1.25])
@@ -38,12 +41,12 @@ if __name__=="__main__":
         np.array([-0.02, 0.0, 0.01])
     ]
 
-    dt = 0.1/60
+    dt = 1/60
     ENABLE_ENV_RANDOMIZER = True
 
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument("--seed", dest="seed", type=int, default=None)
-    arg_parser.add_argument("--mode", dest="mode", type=str, default="test")
+    arg_parser.add_argument("--mode", dest="mode", type=str, default="train")
     arg_parser.add_argument("--motion_file", dest="motion_file", type=str,
                             default="motion_imitation/data/motions/dog_pace.txt")
     arg_parser.add_argument("--visualize", dest="visualize", action="store_true", default=True)
@@ -58,9 +61,8 @@ if __name__=="__main__":
 
     num_procs = MPI.COMM_WORLD.Get_size()
     os.environ["CUDA_VISIBLE_DEVICES"] = '-1'
-
     # 使用pickle从文件加载数组
-    with open('weight_dataV.pkl', 'rb') as f:
+    with open('weight_dataV0_01.pkl', 'rb') as f:
         allresult = pickle.load(f)
 
         # PNtoKCweight = allresult['PNtoKCweight']
@@ -70,11 +72,16 @@ if __name__=="__main__":
     #                  'PN': pace[:, 3:],
     #                  'num_dim_KC_activated': num_dim_KC_activated, 'KCtoMBONweight': KCtoMBONweight}
 
-    PNtoKCweight = allresult['weights_PN2KC_bool']
+    PNtoKCweight = allresult['weights_PN2KC']
     activate_KC_dims = allresult['num_dim_KC_activated']
     KCtoMBONweight = allresult['KCtoMBONweight']
 
+    dynamic_synapase = DynamicSynapseArray(NumberOfSynapses = [12, 1000], Period=700, tInPeriod=None, PeriodVar=None,\
+                 Amp=0.002, WeightersCentre = KCtoMBONweight, WeightersCentreUpdateRate = 0.000012, WeightersOscilateDecay=0.0000003, \
+                ModulatorAmount=0, InitAmp=0.002, t = 0, dt=17, NormalizedWeight=False, Amp2=0.2)
+    
     enable_env_rand = ENABLE_ENV_RANDOMIZER and (args.mode != "test")
+
     env = env_builder.build_imitation_env(motion_files=[args.motion_file],
                                           num_parallel_envs=num_procs,
                                           mode=args.mode,
@@ -102,19 +109,20 @@ if __name__=="__main__":
     action = cal_action(PN, PNtoKCweight, activate_KC_dims, KCtoMBONweight)
     # action *= 1e-5
     i = 0
+    T = 0
     #
     action0 = np.array([0, 0.67, -1.25, 0, 0.67, -1.25, 0, 0.67, -1.25, 0, 0.67, -1.25])
     # action0[np.array([0, 3, 6, 9])]-= 0.66
     action0[np.array([1, 4, 7, 10])] -= 0.66
-    action0[np.array([2, 5, 8, 11])] += 0.9
+    action0[np.array([2, 5, 8, 11])] += 1.25
     while True:
         # action =action0
         action = observed_joints + action * dt
         # action[np.array([1, 4, 7, 10])] += 0.66
         # action[np.array([2, 5, 8, 11])] -= 0.9
-
+        print(action, "\n")
         o, r, d, _ = env.step(action)
-        # print(o[:12],o[12:24],o[48:60])
+        # print(o[48:60])
         new_imu_quat = env._gym_env._gym_env._gym_env.robot.GetTrueBaseOrientation()
         # print(f'o:\n{o[84:84+19]}\nimu_quat:\n{imu_quat}')
         # print(d)
@@ -123,7 +131,8 @@ if __name__=="__main__":
         # imu_quat = [-imu_quat[0],-imu_quat[1],-imu_quat[2],imu_quat[3]]
         observed_joints = o[48:60]
         observed_joints[np.array([1, 4, 7, 10])] -= 0.66
-        observed_joints[np.array([2, 5, 8, 11])] += 0.9
+        observed_joints[np.array([2, 5, 8, 11])] += 1.25
+
         # observed_joints = np.array([-0.12721, 0.07675, -0.95545, -0.25301, 0.18682, -1.14403, -0.19362, 0.14030, -0.77823, -0.09528, 0.05437, -0.97596])
         PN = np.append(imu_quat, observed_joints)
         # # imu_quat = [-imu_quat[0],-imu_quat[1],-imu_quat[2],imu_quat[3]]
@@ -134,9 +143,10 @@ if __name__=="__main__":
         # PN = o[87:103]
         # print(f'i:{i}\naction:\n{action}\no:\n{PN}')
         # PN *= 0.01
-
+        T += dt
+        dynamic_synapase.StepSynapseDynamics(dt=dt, t=T, ModulatorAmount=r-0.05)
         action = cal_action(PN, PNtoKCweight, activate_KC_dims, KCtoMBONweight)
-        # action *= 0
+        action *= 1
         env.render(mode='rgb_array')
         if d:
             env.reset()

@@ -89,7 +89,7 @@ def cal_action(PN, PNtoKCweight, activate_KC_dims, KCtoMBONweight):
     inactivate_indices = sorted_indices[num_dim_KC_activated:,]  
     KC[inactivate_indices] = 0
     velocity = (KCtoMBONweight@KC.T).T
-    action = velocity * 0.01667
+    action = velocity * 0.01667 * 5
     # print(KCtoMBONweight[inactivate_indices])
     # print("PN:", PN[4:])
     # print("velocity", velocity * 0.01667)
@@ -104,7 +104,7 @@ DynamicSynapse = DynamicSynapseArray(NumberOfSynapses = [12, 1000], Period=700, 
 
 action = cal_action(PN, weights_PN2KC_bool, num_dim_KC_activated, DynamicSynapse.Weighters)
 # print("1st PN\n", PN)
-# action *= 0.033
+# action *= 0
 i = 0
 T = 0
 dt = 17
@@ -113,7 +113,9 @@ while True:
     # if i < 100:
     #     action *= 0.0002
     o, r, d, _ = env.step(action)
-    print(o[12:24])
+    print(r)
+    # print(o[12:24])
+    # print(o[48:60])
     imu_quat = env._gym_env._gym_env._gym_env.robot.GetTrueBaseOrientation()
     PN = np.append(imu_quat,o[12:24])
 
@@ -127,16 +129,17 @@ while True:
     # action[::3] *= 5
     # action[1::3] *= 5
     # action[2::3] *= 20
-    print('\n',action)
+    # print('\n',action)
     # action *= 0.033
     # print("\n", action, "\n")
     # action[action>6]=6
-    # action *= 2
-    DynamicSynapse.StepSynapseDynamics(dt=dt, t=T, ModulatorAmount=r-0.05)
+    # action *= 0
+    T += dt
+    DynamicSynapse.StepSynapseDynamics(dt=dt, t=T, ModulatorAmount=r-0.1)
     # print(DynamicSynapse.Amp[0])
     env.render(mode='rgb_array')
     if d:
-        # env.reset()
+        env.reset()
         i = 0
     # print(o[48:84],'\n',action)    
     # print(i)

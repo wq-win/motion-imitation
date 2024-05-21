@@ -28,6 +28,7 @@ num_procs = MPI.COMM_WORLD.Get_size()
 os.environ["CUDA_VISIBLE_DEVICES"] = '-1'
 
 enable_env_rand = ENABLE_ENV_RANDOMIZER and (args.mode != "test")
+
 env = env_builder.build_imitation_env(motion_files=[args.motion_file],
                                         num_parallel_envs=num_procs,
                                         mode=args.mode,
@@ -81,17 +82,17 @@ pace = [
   [0.68773, 0.00000, 0.43701, 0.50903, 0.51581, 0.49242, 0.48203, -0.12785, 0.09815, -0.95073, -0.26299, 0.10340, -1.12756, -0.23415, 0.13683, -0.78085, -0.07723, 0.11886, -1.01564]
 ]
 action_list = np.array(pace)[:, 7:]
-i = 28
+i = 0
 while True:
     i = i % len(action_list)
     action = action_list[i]
-    action *= 2
+    # action *= 2
     o, r, d, _ = env.step(action)
     print(action, "\n")
     print(o[12:24])
     env.render(mode='rgb_array')
-
+    if d:
     # if i%100==0:
-    #     env.reset()
+      env.reset()
     i += 1
 env.close()

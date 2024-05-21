@@ -14,6 +14,7 @@
 # limitations under the License.
 import os
 import inspect
+import pickle
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 os.sys.path.insert(0, parentdir)
@@ -112,38 +113,55 @@ def test(model, env, num_procs, num_episodes=None):
     num_local_episodes = int(np.ceil(float(num_episodes) / num_procs))
   else:
     num_local_episodes = np.inf
-
+  i = 0
+  o_list = []
+  a_list = []
   o = env.reset()
-  while episode_count < num_local_episodes:
+  # while episode_count < num_local_episodes:
+  while i < 600 * 3:
+    i += 1
+    # o += np.random.normal(0, 0.05*abs(o), size=o.shape)
+    # o[-19*3:-19*2] = 0
+    # o[4*2:4*3] = 0
+    # o[12*3:12*4] =0 
     a, _ = model.predict(o, deterministic=True)
+    # a += np.random.normal(0, abs(0.05*a), size=a.shape)
     o, r, done, info = env.step(a)
+    # print(type(o),type(a))
+    o_list.append(o)
+    a_list.append(a)
     t += 1
     # print('IMU:',o[:4])
     # print('IMU1:',o[4:8])
     # print('IMU2:',o[8:12])
-    print('action:',o[12:24])
-    l.append(o[15])
-    if t == 500:
-      plt.plot(range(len(l)), l)
-      plt.show()
+    # print('action:',o[12:24])
+    # print('ma',o[48:60])
+    # print('delta',o[12:24]-o[48:60])
+    # l.append(o[15])
+    # if t == 500:
+    #   plt.plot(range(len(l)), l)
+    #   plt.show()
     # print('motorAngle:',o[48:60])
     curr_return += r
 
     if done:
-        # o = env.reset()
+        print(i)
+        o = env.reset()
         
         sum_return += curr_return
         episode_count += 1
 
-  sum_return = MPI.COMM_WORLD.allreduce(sum_return, MPI.SUM)
-  episode_count = MPI.COMM_WORLD.allreduce(episode_count, MPI.SUM)
+  # sum_return = MPI.COMM_WORLD.allreduce(sum_return, MPI.SUM)
+  # episode_count = MPI.COMM_WORLD.allreduce(episode_count, MPI.SUM)
 
-  mean_return = sum_return / episode_count
+  # mean_return = sum_return / episode_count
 
-  if MPI.COMM_WORLD.Get_rank() == 0:
-      print("Mean Return: " + str(mean_return))
-      print("Episode Count: " + str(episode_count))
-
+  # if MPI.COMM_WORLD.Get_rank() == 0:
+  #     print("Mean Return: " + str(mean_return))
+  #     print("Episode Count: " + str(episode_count))
+  allresult = {'o':o_list, 'a':a_list}
+  with open('oa.pkl', 'wb') as f:
+        pickle.dump(allresult, f)
   return
 
 def main():

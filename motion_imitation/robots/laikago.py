@@ -71,9 +71,9 @@ _DEFAULT_HIP_POSITIONS = (
 
 ABDUCTION_P_GAIN = 220.0
 ABDUCTION_D_GAIN = 0.3
-HIP_P_GAIN = 220.0
+HIP_P_GAIN = 350.0
 HIP_D_GAIN = 2.0
-KNEE_P_GAIN = 220.0
+KNEE_P_GAIN = 350.0
 KNEE_D_GAIN = 2.0
 
 # Bases on the readings from Laikago's default pose.
