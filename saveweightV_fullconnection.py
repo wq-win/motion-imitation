@@ -45,6 +45,8 @@ class Net(nn.Module):
     #   output = self.fc2(x)
       return output
     
+
+
 if __name__ == "__main__":
     loss_list = []
     episode = 100
