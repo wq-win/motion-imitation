@@ -31,7 +31,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = '-1'
 
 enable_env_rand = ENABLE_ENV_RANDOMIZER and (args.mode != "test")
 
-with open('weight_data.pkl', 'rb') as f:  
+with open('PretrainModel/weight_data.pkl', 'rb') as f:  
     allresult = pickle.load(f) 
     
 PNtoKCweight = allresult['PNtoKCweight']

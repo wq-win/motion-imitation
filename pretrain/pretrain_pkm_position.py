@@ -187,5 +187,5 @@ print("loss**2: ",loss_list[-1])
 plt.show()
 allresult ={'PNtoKCweight':PNtoKCweight,'PN':PN,'activate_KC_dims':activate_KC_dims,'KCtoMBONweight':KCtoMBONweight}
 # 使用pickle保存数组到文件  
-with open('weight_data.pkl', 'wb') as f:  
+with open('PretrainModel/weight_data.pkl', 'wb') as f:  
     pickle.dump(allresult, f)

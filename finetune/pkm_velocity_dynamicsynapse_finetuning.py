@@ -6,7 +6,7 @@ import numpy as np
 from tqdm import tqdm
 import pickle  
 from scipy.spatial.transform import Rotation as R
-from DynamicSynapse2D import DynamicSynapseArray
+from DynamicSynapse.DynamicSynapse2D import DynamicSynapseArray
 # python3 -m motion_imitation.examples.test_env_gui --robot_type=A1 --motor_control_mode=Position --on_rack=True
 # python3 -m motion_imitation.examples.test_env_gui --robot_type=Laikago --motor_control_mode=Position --on_rack=True
 # python3 -m motion_imitation.examples.test_env_gui --robot_type=A1 --motor_control_mode=Torque --on_rack=True

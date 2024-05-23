@@ -5,7 +5,7 @@ import os
 import numpy as np
 from tqdm import tqdm
 import pickle  
-from DynamicSynapse2D import DynamicSynapseArray
+from DynamicSynapse.DynamicSynapse2D import DynamicSynapseArray
 # python3 -m motion_imitation.examples.test_env_gui --robot_type=A1 --motor_control_mode=Position --on_rack=True
 # python3 -m motion_imitation.examples.test_env_gui --robot_type=Laikago --motor_control_mode=Position --on_rack=True
 # python3 -m motion_imitation.examples.test_env_gui --robot_type=A1 --motor_control_mode=Torque --on_rack=True
@@ -62,7 +62,7 @@ if __name__=="__main__":
     num_procs = MPI.COMM_WORLD.Get_size()
     os.environ["CUDA_VISIBLE_DEVICES"] = '-1'
     # 使用pickle从文件加载数组
-    with open('weight_dataV0_01.pkl', 'rb') as f:
+    with open('PretrainModel/weight_dataV0_01.pkl', 'rb') as f:
         allresult = pickle.load(f)
 
         # PNtoKCweight = allresult['PNtoKCweight']

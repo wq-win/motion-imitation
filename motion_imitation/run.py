@@ -160,7 +160,7 @@ def test(model, env, num_procs, num_episodes=None):
   #     print("Mean Return: " + str(mean_return))
   #     print("Episode Count: " + str(episode_count))
   allresult = {'o':o_list, 'a':a_list}
-  with open('oa.pkl', 'wb') as f:
+  with open('pretrain/dataset/oa.pkl', 'wb') as f:
         pickle.dump(allresult, f)
   return
 

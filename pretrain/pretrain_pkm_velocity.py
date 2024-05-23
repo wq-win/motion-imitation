@@ -1,6 +1,11 @@
-import pickle  
+import pickle
 import numpy as np
-np.random.seed(0)
+from tqdm import tqdm
+import matplotlib.pyplot as plt
+from scipy.spatial.transform import Rotation as R
+from collections import deque
+from numba import njit
+
 pace = [
   [0.00000, 0.00000, 0.43701, 0.49491, 0.53393, 0.49912, 0.46997, -0.12721, 0.07675, -0.95545, -0.25301, 0.18682, -1.14403, -0.19362, 0.14030, -0.77823, -0.09528, 0.05437, -0.97596],
   [0.01641, 0.00223, 0.43771, 0.48959, 0.53669, 0.50119, 0.47018, -0.12680, 0.11820, -0.94606, -0.28172, 0.03357, -1.16456, -0.20247, 0.17747, -0.77104, -0.09744, -0.05174, -0.93399],
@@ -42,87 +47,149 @@ pace = [
   [0.67005, 0.00126, 0.43824, 0.51299, 0.51174, 0.49342, 0.48113, -0.12047, 0.05387, -0.95210, -0.21892, 0.23998, -1.07604, -0.22485, 0.10828, -0.79239, -0.08403, 0.22582, -1.04134],
   [0.68773, 0.00000, 0.43701, 0.50903, 0.51581, 0.49242, 0.48203, -0.12785, 0.09815, -0.95073, -0.26299, 0.10340, -1.12756, -0.23415, 0.13683, -0.78085, -0.07723, 0.11886, -1.01564]
 ]
-pace = np.array(pace)
 
-PN = pace[:, 3:]
-# 使用pickle从文件加载数组  
-with open('weight_data.pkl', 'rb') as f:  
-    allresult = pickle.load(f)  
-# PN = PN + np.random.normal(0,abs(0.01*PN),size=PN.shape)
-# PN = allresult['PN']
-# print(PN)
-PNtoKCweight = allresult['PNtoKCweight']
-activate_KC_dims = allresult['activate_KC_dims']
-KCtoMBONweight = allresult['KCtoMBONweight']
 
-KC = PN @ PNtoKCweight
-sorted_indices = np.argsort(KC, axis=1)[:, ::-1]  
-inactivate_indices = sorted_indices[:, activate_KC_dims:]  
-KC[np.arange(KC.shape[0])[:, None], inactivate_indices] = 0
-MBON = KC @ KCtoMBONweight
-print(MBON)
+# print(goal_joint_velocity)
+# print(i.as_quat())
+def calculate_mean(data):
+    data_dim = data.shape[1]
+    average = np.array([abs(data[:, i]).mean() for i in range(data_dim)])
+    return average
 
 
 
-"""
-False
+def generate_data(random_num, data):
+    imu_euler, joint_angle = data
+    imu_average = calculate_mean(imu_euler)
+    joint_angle_average = calculate_mean(joint_angle)
+    sample_dim = 4 + joint_angle.shape[1]
+    ref_num = imu_euler.shape[0]
+    data = {"input": np.empty((ref_num*random_num, sample_dim)),
+            "label": np.empty((ref_num*random_num, joint_angle.shape[1]))}
+    for i in range(random_num):
+        imu_euler_noised = imu_euler + np.random.normal(0, 2 * np.pi * noise_factor * imu_average, size=imu_euler.shape)
+        imu_euler_noised_R = R.from_euler("XYZ", imu_euler_noised)
+        imu_euler_noised_quat = imu_euler_noised_R.as_quat()
+        # print(imu_euler_noised_quat)
+        # Obs_noised = Obs + np.random.normal(0,,size=Obs.shape)
+
+        joint_angle_noised = joint_angle + np.random.normal(0, 2 * np.pi * noise_factor * joint_angle_average, size=joint_angle.shape)
+        goal_joint_angle = np.vstack((pace[3:, 7:], pace[:3, 7:]))
+        goal_joint_velocity = ((goal_joint_angle - joint_angle_noised) / timestep)
 
 
-o[:12],o[12:24],o[48:60]
-[ 4.72117770e-04  6.30009073e-03  6.15232580e-07  3.02447404e-07
-  4.72117770e-04  6.30009073e-03  3.11491476e-07  1.97299528e-07
-  4.72117770e-04  6.30009073e-03 -2.92843705e-08  7.16017183e-08] 
+        data["input"][i*ref_num:(i+1)*ref_num, :] = np.hstack((imu_euler_noised_quat, joint_angle_noised))
+        data["label"][i*ref_num:(i+1)*ref_num, :] = goal_joint_velocity
+    return data
 
-[ 0.    0.67 -1.25  0.    0.67 -1.25  0.    0.67 -1.25  0.    0.67 -1.25] 
 
-[ 3.23257017e-04  6.84543396e-01 -1.28736208e+00  3.23178350e-04
-  6.84261690e-01 -1.28668770e+00  1.32613840e-04  6.76969233e-01
- -1.27398253e+00  1.32557475e-04  6.76722579e-01 -1.27336992e+00]
-False
-[4.72162216e-04 6.30013509e-03 8.67360257e-07 3.79193779e-07
- 4.72117770e-04 6.30009073e-03 6.15232580e-07 3.02447404e-07
- 4.72117770e-04 6.30009073e-03 3.11491476e-07 1.97299528e-07] [ 0.    0.67 -1.25  0.    0.67 -1.25  0.    0.67 -1.25  0.    0.67 -1.25] [ 3.23273278e-04  6.84543437e-01 -1.28736210e+00  3.23194603e-04
-  6.84261714e-01 -1.28668768e+00  1.32623500e-04  6.76969258e-01
- -1.27398252e+00  1.32567129e-04  6.76722589e-01 -1.273369 87e+00]
-False
-[4.72162216e-04 6.30013509e-03 1.05789786e-06 4.22270148e-07
- 4.72162216e-04 6.30013509e-03 8.67360257e-07 3.79193779e-07
- 4.72117770e-04 6.30009073e-03 6.15232580e-07 3.02447404e-07] [ 0.    0.67 -1.25  0.    0.67 -1.25  0.    0.67 -1.25  0.    0.67 -1.25] [ 3.23296787e-04  6.84543484e-01 -1.28736212e+00  3.23218101e-04
-  6.84261740e-01 -1.28668766e+00  1.32631215e-04  6.76969286e-01
- -1.27398251e+00  1.32574837e-04  6.76722600e-01 -1.27336982e+00]
-False
-[4.72162216e-04 6.30013509e-03 1.18123455e-06 4.29337973e-07
- 4.72162216e-04 6.30013509e-03 1.05789786e-06 4.22270148e-07
- 4.72162216e-04 6.30013509e-03 8.67360257e-07 3.79193779e-07] [ 0.    0.67 -1.25  0.    0.67 -1.25  0.    0.67 -1.25  0.    0.67 -1.25] [ 3.23326053e-04  6.84543532e-01 -1.28736215e+00  3.23247352e-04
-  6.84261768e-01 -1.28668763e+00  1.32636521e-04  6.76969315e-01
- -1.27398250e+00  1.32580136e-04  6.76722613e-01 -1.27336976e+00]
-False
-[4.72251522e-04 6.30022451e-03 1.23557220e-06 4.01084890e-07
- 4.72162216e-04 6.30013509e-03 1.18123455e-06 4.29337973e-07
- 4.72162216e-04 6.30013509e-03 1.05789786e-06 4.22270148e-07] [ 0.    0.67 -1.25  0.    0.67 -1.25  0.    0.67 -1.25  0.    0.67 -1.25] [ 3.23358893e-04  6.84543578e-01 -1.28736218e+00  3.23280176e-04
-  6.84261795e-01 -1.28668759e+00  1.32639625e-04  6.76969342e-01
- -1.27398250e+00  1.32583232e-04  6.76722626e-01 -1.27336970e+00]
-False
-[4.72266516e-04 6.30023941e-03 1.22224992e-06 3.41069779e-07
- 4.72251522e-04 6.30022451e-03 1.23557220e-06 4.01084890e-07
- 4.72162216e-04 6.30013509e-03 1.18123455e-06 4.29337973e-07] [ 0.    0.67 -1.25  0.    0.67 -1.25  0.    0.67 -1.25  0.    0.67 -1.25] [ 3.23392655e-04  6.84543619e-01 -1.28736221e+00  3.23313922e-04
-  6.84261817e-01 -1.28668756e+00  1.32641270e-04  6.76969365e-01
- -1.27398250e+00  1.32584868e-04  6.76722637e-01 -1.27336965e+00]
-False
-[4.72355805e-04 6.30021000e-03 1.14512716e-06 2.55334839e-07
- 4.72266516e-04 6.30023941e-03 1.22224992e-06 3.41069779e-07
- 4.72251522e-04 6.30022451e-03 1.23557220e-06 4.01084890e-07] [ 0.    0.67 -1.25  0.    0.67 -1.25  0.    0.67 -1.25  0.    0.67 -1.25] [ 3.23424526e-04  6.84543653e-01 -1.28736224e+00  3.23345778e-04
-  6.84261832e-01 -1.28668753e+00  1.32642477e-04  6.76969385e-01
- -1.27398250e+00  1.32586067e-04  6.76722644e-01 -1.27336960e+00]
-False
-[4.72385351e-04 6.30023945e-03 1.01014086e-06 1.51825020e-07
- 4.72355805e-04 6.30021000e-03 1.14512716e-06 2.55334839e-07
- 4.72266516e-04 6.30023941e-03 1.22224992e-06 3.41069779e-07] [ 0.    0.67 -1.25  0.    0.67 -1.25  0.    0.67 -1.25  0.    0.67 -1.25] [ 3.23451874e-04  6.84543677e-01 -1.28736226e+00  3.23373114e-04
-  6.84261839e-01 -1.28668750e+00  1.32644256e-04  6.76969399e-01
- -1.27398251e+00  1.32587839e-04  6.76722646e-01 -1.27336957e+00]
-False
-[4.72385351e-04 6.30023945e-03 8.25078359e-07 3.96665030e-08
- 4.72385351e-04 6.30023945e-03 1.01014086e-06 1.51825020e-07
- 4.72355805e-04 6.30021000e-03 1.14512716e-06 2.55334839e-07] [ 0.    0.67 -1.25  0.    0.67 -1.25  0.    0.67 -1.25  0.    0.67 -1.25] [ 3.23472572e-04  6.84543690e-01 -1.28736228e+00  3.23393802e-04
-  6.84261838e-01 -1.28668748e+00  1.32647319e-04  6.76969408e-01
- -1.27398253e+00  1.32590896e-04  6.76722643e-01 -1.27336955e+00]"""
+def learning_loop(KCtoMBONweight, KC, learning_rate, epochs, activate_indices):
+    loss_list = [ 0 for _ in range(epochs)]
+    # indices1 = np.arange(KCtoMBONweight.shape[0])[:, None]
+    # indices2 = np.arange(KC.shape[0])[:, None]
+
+    for i in range(int(epochs)):
+        # loss = (goal_joint_velocity - (KCtoMBONweight[indices1, activate_indices] @ KC[indices2, activate_indices].T).T
+        MBON_input = (KCtoMBONweight @ KC.T).T
+        loss = (goal_joint_velocity - MBON_input)
+        gradient = loss.T @ KC
+        KCtoMBONweight += gradient * learning_rate
+        # print(KC @ KCtoMBONweight)
+        loss = loss ** 2
+        loss_list[i] = loss.mean()
+        learning_rate *= epsilon
+    return KCtoMBONweight, loss, loss_list, learning_rate, gradient.max()
+
+
+if __name__ == "__main__":
+
+    pace = np.array(pace) 
+    ref_len = pace.shape[0]
+    imu_quat = pace[:, 3:7]
+    imu = R.from_quat(imu_quat)
+    a = np.array([[0, 1, 0], [0, 0, 1], [1, 0, 0]])
+    r = R.from_matrix(a)
+    # r1 = r_trans*r
+
+    imu_transformed = r.as_matrix() @ imu.as_matrix()
+    
+    imu_R = R.from_matrix(imu_transformed)
+    # print("imu:",imu_R)
+    imu_euler = imu_R.as_euler('XYZ', degrees=False)
+    joint_angle = pace[:, 7:]
+    loss_list = []
+
+    timestep = 0.01667
+    timestep = 1 / 60
+    noise_factor = 0.005
+    random_times = 100
+
+    learning_rate = 4e-5
+    epsilon = 1 - 2e-5
+    epochs = 20  # 迭代次数
+    episode = 10000
+    batch_size = 512
+
+    PN_dims = 16
+    KC_dims = 10000
+    MBON_dims = 12
+    weights_PN2KC_full = np.random.normal(0, 0.01, (KC_dims, PN_dims))
+    PN_smaple_rate = 0.25
+    num_dim_PN_sampled = int(PN_dims * PN_smaple_rate)
+    KC_activation_rate = 0.05 # percentage of KC activatity level
+    num_dim_KC_activated = int(KC_dims * KC_activation_rate)  # remian PNtoKCweight top 3*1000 weight
+
+    weight_sorted_indices = np.argsort(weights_PN2KC_full, axis=1)
+    top_weight_indices = weight_sorted_indices[:, -num_dim_PN_sampled:]
+    weights_PN2KC = np.zeros_like(weights_PN2KC_full)
+    weights_PN2KC[np.arange(KC_dims)[:, None], top_weight_indices] = 1/num_dim_PN_sampled
+    KCtoMBONweight = np.random.normal(0, 0.01/num_dim_KC_activated, size=(MBON_dims, KC_dims))
+
+
+
+    data = generate_data(random_times, (imu_euler, joint_angle))
+    for akey in data.keys():
+        data[akey] = np.array(data[akey])
+    print(len(data["input"]))
+    print('data["input"]' + str(data["input"][0:39]))
+    print('data["label"]' + str(data["label"][0:39]))
+    for i in tqdm(range(episode)):
+        sample_index = np.random.choice(ref_len * random_times, batch_size)
+        PN = np.array(data["input"][sample_index])
+        goal_joint_velocity = np.array(data["label"][sample_index])
+        KC_input = (weights_PN2KC @ PN.T).T
+   
+
+        sorted_indices = np.argsort(KC_input)
+        activate_indices = sorted_indices[:, -num_dim_KC_activated:, ]
+        inactivate_indices = sorted_indices[:, :-num_dim_KC_activated]
+        KC_input[np.arange(KC_input.shape[0])[:, None], inactivate_indices] = 0.2
+
+        # with np.printoptions(threshold=np.inf):
+        #     print("KC_input:")
+        #     print(KC_input[0])
+        # # print(KC_input[0])
+        KC_V = np.tanh((KC_input-0.2) * 5)
+        with np.printoptions(threshold=np.inf):
+            print(KC_V[0])
+        # KC = KC_V/np.sum(KC_V, axis=1, keepdims=1)
+        KC = KC_V
+        # if i % 100 == 0:
+        #     print(i)
+        KCtoMBONweight, loss, loss_list_epoch, learning_rate, gradient_max = \
+            learning_loop(KCtoMBONweight, KC, learning_rate, epochs, activate_indices)
+        loss_list.extend(loss_list_epoch)
+        # print(loss)
+
+        tqdm.write("loss: %f, learning_rate: %f, max_KC_V[0]: %f, gradient_max: %f"
+              %(loss_list[-1], learning_rate, max(KC_V[0]), gradient_max))
+
+    plt.plot(range(len(loss_list)), loss_list)
+    plt.show()
+    allresult = {'weights_PN2KC': weights_PN2KC,
+                 'PN': pace[:, 3:],
+                 'num_dim_KC_activated': num_dim_KC_activated, 'KCtoMBONweight': KCtoMBONweight}
+    # 使用pickle保存数组到文件
+
+    with open('PretrainModel/weight_dataV0_01.pkl', 'wb') as f:
+        pickle.dump(allresult, f)

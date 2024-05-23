@@ -44,7 +44,7 @@ pace = [
 pace = np.array(pace * 100)
 
 # 使用pickle从文件加载数组  
-with open('weight_dataV0_01.pkl', 'rb') as f:  
+with open('PretrainModel/weight_dataV0_01.pkl', 'rb') as f:  
     allresult = pickle.load(f)  
 PN = allresult['PN']
 weights_PN2KC_bool = allresult['weights_PN2KC']
