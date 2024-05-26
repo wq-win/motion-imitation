@@ -22,6 +22,7 @@ os.sys.path.insert(0, parentdir)
 
 TIMESTEPS_PER_ACTORBATCH = 4096
 OPTIM_BATCHSIZE = 256
+NOWTIME = time.strftime("%m-%d_%H-%M-%S", time.localtime())
 
 ENABLE_ENV_RANDOMIZER = True
 l = list()
@@ -77,7 +78,7 @@ formatted_time = time.strftime("-%m-%d-", local_time)
 def test(model, env, num_procs, num_episodes=None):
     i = 0
     EPISODE = 600  # one episode has 600 step
-    collect_nums = 100
+    collect_nums = 10000
     o_list = []
     a_list = []
     o = env.reset()
@@ -90,9 +91,9 @@ def test(model, env, num_procs, num_episodes=None):
 
         if done:
             o = env.reset()
-
+    env.close()
     allresult = {'o': o_list, 'a': a_list}
-    with open('pretrain/dataset/oa.pkl', 'wb') as f:
+    with open('pretrain/dataset/oa_{}.pkl'.format(NOWTIME), 'wb') as f:
         pickle.dump(allresult, f)
     return
 
