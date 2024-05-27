@@ -18,17 +18,17 @@ with open('pretrain/dataset/oa.pkl', 'rb') as f:
 o = np.array(allresult['o'], dtype=float)
 a = np.array(allresult['a'])
 # print(len(o), len(o[0]), len(a), len(a[0]))  
-input_dim = o[0]
-output_dim = a[0]
+input_dim = len(o[0])
+output_dim = len(a[0])
 
 class Net(nn.Module):
     def __init__(self, input_dim, output_dim):
         super(Net, self).__init__()
         self.fc1 = nn.Linear(input_dim, 10000)
         # self.dropout1 = nn.Dropout(0.25)
-        self.fc2 = nn.Linear(10000, 1000)
+        # self.fc2 = nn.Linear(10000, 1000)
         # self.dropout2 = nn.Dropout(0.25)
-        self.fc3 = nn.Linear(1000, output_dim)
+        self.fc3 = nn.Linear(10000, output_dim)
     #   self.dropout1 = nn.Dropout2d(0.25)
     #   self.fc2 = nn.Linear(1000, 12)
 
@@ -37,7 +37,7 @@ class Net(nn.Module):
         # Pass data through conv1
         x = self.fc1(x)
         # x = F.relu(x)
-        x = self.fc2(x)
+        # x = self.fc2(x)
         # x = F.relu(x)
         x = self.fc3(x)
         # Use the rectified-linear activation function over x
@@ -52,14 +52,15 @@ class Net(nn.Module):
 
 if __name__ == "__main__":
     loss_list = list()
-    episode = 100
-    epoch = 50
+    episode = 10
+    epoch = 10
     lambda1 = 0.2
     learning_rate = 1e-4
     
     assert len(o) == len(a), 'train data error!'
-    o = torch.from_numpy(o)
-    a = torch.from_numpy(a)
+    o = torch.tensor(o, dtype=torch.float32)
+    a = torch.tensor(a, dtype=torch.float32)
+
     train_dataset = TensorDataset(o, a)
     train_loader = DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=False)
     
@@ -80,24 +81,25 @@ if __name__ == "__main__":
         for e in range(epoch):
             running_loss = 0.0
             for i, (inputs, labels) in enumerate(train_loader, 0):                
-                L1_term = torch.tensor(0., requires_grad=True)
-                for name, weights in model.named_parameters():
-                    if 'bias' not in name:
-                        weights_sum = torch.sum(torch.abs(weights))
-                        L1_term +=  weights_sum
-                L1_term /= nweights
+                # L1_term = torch.tensor(0., requires_grad=True)
+                # for name, weights in model.named_parameters():
+                #     if 'bias' not in name:
+                #         weights_sum = torch.sum(torch.abs(weights))
+                #         L1_term = L1_term + weights_sum
+                # L1_term = L1_term / nweights
                 
                 outputs = model(inputs)
-                loss = criterion(outputs, inputs) + L1_term * lambda1               
+                # loss = criterion(outputs, inputs) + L1_term * lambda1 
+                loss = criterion(outputs, labels)              
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
                 
                 running_loss += loss.item()
-                
-                if i % BATCH_SIZE == BATCH_SIZE - 1:
-                    loss = running_loss / BATCH_SIZE
-                    print(f"Episode {ep + 1},Epoch {e + 1}, i {i},Loss: {loss}")
+                # print(i)
+                if i % 10 == 10 - 1:
+                    loss = running_loss / 10
+                    print(f"Episode {ep + 1},Epoch {e + 1},Loss: {loss}")
                     loss_list.append(loss)
                     running_loss = 0.0
 
