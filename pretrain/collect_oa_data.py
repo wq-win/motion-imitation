@@ -78,7 +78,7 @@ formatted_time = time.strftime("-%m-%d-", local_time)
 def test(model, env, num_procs, num_episodes=None):
     i = 0
     EPISODE = 600  # one episode has 600 step
-    collect_nums = 10000
+    collect_nums = 1000
     o_list = []
     a_list = []
     o = env.reset()
@@ -91,6 +91,7 @@ def test(model, env, num_procs, num_episodes=None):
 
         if done:
             o = env.reset()
+            print(f"eposide:{i//600}/{collect_nums}")
     env.close()
     allresult = {'o': o_list, 'a': a_list}
     with open('pretrain/dataset/oa_{}.pkl'.format(NOWTIME), 'wb') as f:
