@@ -23,7 +23,7 @@ os.sys.path.insert(0, parentdir)
 TIMESTEPS_PER_ACTORBATCH = 4096
 OPTIM_BATCHSIZE = 256
 NOWTIME = time.strftime("%m-%d_%H-%M-%S", time.localtime())
-
+# start_time = time.time()
 ENABLE_ENV_RANDOMIZER = True
 l = list()
 
@@ -78,20 +78,21 @@ formatted_time = time.strftime("-%m-%d-", local_time)
 def test(model, env, num_procs, num_episodes=None):
     i = 0
     EPISODE = 600  # one episode has 600 step
-    collect_nums = 1000
+    collect_nums = 10000
     o_list = []
     a_list = []
     o = env.reset()
     while i < EPISODE * collect_nums:
         i += 1
         a, _ = model.predict(o, deterministic=True)
-        o, r, done, info = env.step(a)
         o_list.append(o)
         a_list.append(a)
+        o, r, done, info = env.step(a)
 
         if done:
             o = env.reset()
             print(f"eposide:{i//600}/{collect_nums}")
+            # print(time.time()- start_time)
     env.close()
     allresult = {'o': o_list, 'a': a_list}
     with open('pretrain/dataset/oa_{}.pkl'.format(NOWTIME), 'wb') as f:

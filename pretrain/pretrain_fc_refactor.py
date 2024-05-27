@@ -1,3 +1,4 @@
+import sys
 import time
 import pickle
 import numpy as np
@@ -11,15 +12,7 @@ import matplotlib.pyplot as plt
 NOWTIME = time.strftime("%m-%d_%H-%M-%S", time.localtime())
 BATCH_SIZE = 64
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-print(DEVICE)
-with open('pretrain/dataset/oa.pkl', 'rb') as f:
-        allresult = pickle.load(f)
 
-o = np.array(allresult['o'], dtype=float)
-a = np.array(allresult['a'])
-# print(len(o), len(o[0]), len(a), len(a[0]))  
-input_dim = len(o[0])
-output_dim = len(a[0])
 
 class Net(nn.Module):
     def __init__(self, input_dim, output_dim):
@@ -51,6 +44,16 @@ class Net(nn.Module):
 
 
 if __name__ == "__main__":
+    print(DEVICE)
+    with open('pretrain/dataset/oa_1000episode.pkl', 'rb') as f:
+            allresult = pickle.load(f)
+
+    o = np.array(allresult['o'], dtype=float)
+    a = np.array(allresult['a'])
+    print(len(o), len(o[0]), len(a), len(a[0]))  
+    input_dim = len(o[0])
+    output_dim = len(a[0])
+
     loss_list = list()
     episode = 10
     epoch = 10
@@ -97,7 +100,7 @@ if __name__ == "__main__":
                 
                 running_loss += loss.item()
                 # print(i)
-                if i % 10 == 10 - 1:
+                if i % BATCH_SIZE == BATCH_SIZE - 1:
                     loss = running_loss / 10
                     print(f"Episode {ep + 1},Epoch {e + 1},Loss: {loss}")
                     loss_list.append(loss)
