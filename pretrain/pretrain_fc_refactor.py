@@ -11,24 +11,24 @@ import matplotlib.pyplot as plt
 NOWTIME = time.strftime("%m-%d_%H-%M-%S", time.localtime())
 BATCH_SIZE = 64
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
+print(DEVICE)
 with open('pretrain/dataset/oa.pkl', 'rb') as f:
         allresult = pickle.load(f)
 
 o = np.array(allresult['o'], dtype=float)
 a = np.array(allresult['a'])
-# print(len(o), len(o[0]), len(a), len(a[0]))
+# print(len(o), len(o[0]), len(a), len(a[0]))  
 input_dim = o[0]
 output_dim = a[0]
 
 class Net(nn.Module):
     def __init__(self, input_dim, output_dim):
         super(Net, self).__init__()
-        self.fc1 = nn.Linear(input_dim, 256)
-        self.dropout1 = nn.Dropout(0.25)
-        self.fc2 = nn.Linear(256, 64)
-        self.dropout2 = nn.Dropout(0.25)
-        self.fc3 = nn.Linear(64, output_dim)
+        self.fc1 = nn.Linear(input_dim, 10000)
+        # self.dropout1 = nn.Dropout(0.25)
+        self.fc2 = nn.Linear(10000, 1000)
+        # self.dropout2 = nn.Dropout(0.25)
+        self.fc3 = nn.Linear(1000, output_dim)
     #   self.dropout1 = nn.Dropout2d(0.25)
     #   self.fc2 = nn.Linear(1000, 12)
 
@@ -36,12 +36,13 @@ class Net(nn.Module):
     def forward(self, x):
         # Pass data through conv1
         x = self.fc1(x)
-        x = F.relu(x)
+        # x = F.relu(x)
         x = self.fc2(x)
-        x = F.relu(x)
+        # x = F.relu(x)
         x = self.fc3(x)
         # Use the rectified-linear activation function over x
-        output = torch.tanh(x)
+        # output = torch.tanh(x)
+        output = x
     #   x = self.dropout1(x)
     #   x = self.fc2(x)
     #   x = F.tanh(x)
@@ -57,6 +58,8 @@ if __name__ == "__main__":
     learning_rate = 1e-4
     
     assert len(o) == len(a), 'train data error!'
+    o = torch.from_numpy(o)
+    a = torch.from_numpy(a)
     train_dataset = TensorDataset(o, a)
     train_loader = DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=False)
     
