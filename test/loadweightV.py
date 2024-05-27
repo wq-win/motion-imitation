@@ -52,8 +52,8 @@ num_dim_KC_activated = allresult['num_dim_KC_activated']
 KCtoMBONweight = allresult['KCtoMBONweight']
 # goal = allresult["goal"]
 joint_angle = PN[:, 4:]
-goal_joint_angle = np.vstack((PN[1:, 4:] ,PN[:1, 4:]))
-goal_joint_velocity = ((goal_joint_angle - joint_angle) / 0.01667)
+goal_joint_angle = np.vstack((PN[2:, 4:] ,PN[:2, 4:]))
+goal_joint_velocity = ((goal_joint_angle - joint_angle) / (0.01667 * 2))
 KC = (weights_PN2KC_bool @ PN.T).T
 
 

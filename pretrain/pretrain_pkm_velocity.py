@@ -1,4 +1,5 @@
 import pickle
+import time
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -6,6 +7,7 @@ from scipy.spatial.transform import Rotation as R
 from collections import deque
 from numba import njit
 
+NOWTIME = time.strftime("%m-%d_%H-%M-%S", time.localtime())
 pace = [
   [0.00000, 0.00000, 0.43701, 0.49491, 0.53393, 0.49912, 0.46997, -0.12721, 0.07675, -0.95545, -0.25301, 0.18682, -1.14403, -0.19362, 0.14030, -0.77823, -0.09528, 0.05437, -0.97596],
   [0.01641, 0.00223, 0.43771, 0.48959, 0.53669, 0.50119, 0.47018, -0.12680, 0.11820, -0.94606, -0.28172, 0.03357, -1.16456, -0.20247, 0.17747, -0.77104, -0.09744, -0.05174, -0.93399],
@@ -74,8 +76,8 @@ def generate_data(random_num, data):
         # Obs_noised = Obs + np.random.normal(0,,size=Obs.shape)
 
         joint_angle_noised = joint_angle + np.random.normal(0, 2 * np.pi * noise_factor * joint_angle_average, size=joint_angle.shape)
-        goal_joint_angle = np.vstack((pace[3:, 7:], pace[:3, 7:]))
-        goal_joint_velocity = ((goal_joint_angle - joint_angle_noised) / timestep)
+        goal_joint_angle = np.vstack((pace[2:, 7:], pace[:2, 7:]))
+        goal_joint_velocity = ((goal_joint_angle - joint_angle_noised) / (timestep * 2))
 
 
         data["input"][i*ref_num:(i+1)*ref_num, :] = np.hstack((imu_euler_noised_quat, joint_angle_noised))
@@ -191,5 +193,5 @@ if __name__ == "__main__":
                  'num_dim_KC_activated': num_dim_KC_activated, 'KCtoMBONweight': KCtoMBONweight}
     # 使用pickle保存数组到文件
 
-    with open('PretrainModel/weight_dataV0_01.pkl', 'wb') as f:
+    with open(f'PretrainModel/weight_dataV_{NOWTIME}.pkl', 'wb') as f:
         pickle.dump(allresult, f)

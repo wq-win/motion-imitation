@@ -128,9 +128,10 @@ def test(model, env, num_procs, num_episodes=None):
     # a += np.random.normal(0, abs(0.05*a), size=a.shape)
     o, r, done, info = env.step(a)
     # print(type(o),type(a))
-    o_list.append(o)
-    a_list.append(a)
+    # o_list.append(o)
+    # a_list.append(a)
     t += 1
+    print(o[84:84+19])
     # print('IMU:',o[:4])
     # print('IMU1:',o[4:8])
     # print('IMU2:',o[8:12])
