@@ -12,6 +12,7 @@ import numpy as np
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 ENABLE_ENV_RANDOMIZER = True
@@ -44,35 +45,47 @@ env = env_builder.build_imitation_env(motion_files=[args.motion_file],
 o = env.reset()
 env.render(mode='rgb_array')
 
+
 class Net(nn.Module):
     def __init__(self, input_dim, output_dim):
         super(Net, self).__init__()
-        self.fc1 = nn.Linear(input_dim, 10000)
-        self.fc3 = nn.Linear(10000, output_dim)
+        self.fc1 = nn.Linear(input_dim, 512)
+        self.fc2 = nn.Linear(512, 128)
+        self.fc3 = nn.Linear(128, 32)
+        self.fc4 = nn.Linear(32, output_dim)
 
     def forward(self, x):
         x = self.fc1(x)
-        return self.fc3(x)
+        x = F.relu(x)
+        x = self.fc2(x)
+        x = F.relu(x)
+        x = self.fc3(x)
+        x = F.relu(x)
+        return self.fc4(x)
 
 test_model = Net(160, 12)
 # TODO: update path
-test_model.load_state_dict(torch.load('PretrainModel/predict_model_05-27_17-34-59.pkl'))
-print(o)
+# test_model.load_state_dict(torch.load('PretrainModel/predict_model_05-28_10-01-35.pkl'))
+test_model.load_state_dict(torch.load('PretrainModel/predict_model_05-29_10-19-05.pkl'))
+
+# print(o)
 o = torch.tensor(o, dtype=torch.float32)
 i = 0
+i_list = []
+# while len(i_list) < 100:
 while True:
-    print(i)
     i += 1
     action = test_model(o)
     action = action.detach().numpy()
-    # action *= .5
     # print(action)
     o, r, d, _ = env.step(action)
     o = torch.tensor(o, dtype=torch.float32)
     env.render(mode='rgb_array')
     if d:
-      env.reset()
-      i = 0
-
+        print(i)
+        i_list.append(i)
+        env.reset()
+        i = 0
 env.close()
+print(f"\naverage step:{sum(i_list) / len(i_list)}\n")
 

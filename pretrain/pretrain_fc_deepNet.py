@@ -17,30 +17,19 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 class Net(nn.Module):
     def __init__(self, input_dim, output_dim):
         super(Net, self).__init__()
-        self.fc1 = nn.Linear(input_dim, 10000)
-        # self.dropout1 = nn.Dropout(0.25)
-        # self.fc2 = nn.Linear(10000, 1000)
-        # self.dropout2 = nn.Dropout(0.25)
-        self.fc3 = nn.Linear(10000, output_dim)
-    #   self.dropout1 = nn.Dropout2d(0.25)
-    #   self.fc2 = nn.Linear(1000, 12)
+        self.fc1 = nn.Linear(input_dim, 512)
+        self.fc2 = nn.Linear(512, 128)
+        self.fc3 = nn.Linear(128, 32)
+        self.fc4 = nn.Linear(32, output_dim)
 
-    # x represents our data
     def forward(self, x):
-        # Pass data through conv1
         x = self.fc1(x)
-        # x = F.relu(x)
-        # x = self.fc2(x)
-        # x = F.relu(x)
+        x = F.relu(x)
+        x = self.fc2(x)
+        x = F.relu(x)
         x = self.fc3(x)
-        # Use the rectified-linear activation function over x
-        # output = torch.tanh(x)
-        output = x
-    #   x = self.dropout1(x)
-    #   x = self.fc2(x)
-    #   x = F.tanh(x)
-    #   output = self.fc2(x)
-        return output
+        x = F.relu(x)
+        return self.fc4(x)
 
 
 if __name__ == "__main__":
@@ -56,8 +45,8 @@ if __name__ == "__main__":
     output_dim = len(a[0])
 
     loss_list = list()
-    episode = 10
-    epoch = 10
+    episode = 5
+    epoch = 5
     lambda1 = 0.2
     learning_rate = 1e-4
     
@@ -79,31 +68,21 @@ if __name__ == "__main__":
         if 'bias' not in name:
             nweights = nweights + weights.numel()
     print(f'Total number of weights in the model = {nweights}')
-
+    model.train()
     for ep in range(episode):
-        model.train()
         for e in range(epoch):
             running_loss = 0.0
-            for i, (inputs, labels) in enumerate(train_loader, 0):                
-                # L1_term = torch.tensor(0., requires_grad=True)
-                # for name, weights in model.named_parameters():
-                #     if 'bias' not in name:
-                #         weights_sum = torch.sum(torch.abs(weights))
-                #         L1_term = L1_term + weights_sum
-                # L1_term = L1_term / nweights
-                
+            for i, (inputs, labels) in enumerate(train_loader, 0):                   
                 outputs = model(inputs)
-                # loss = criterion(outputs, inputs) + L1_term * lambda1 
                 loss = criterion(outputs, labels)              
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
-                
                 running_loss += loss.item()
                 # print(i)
                 if i % BATCH_SIZE == BATCH_SIZE - 1:
                     loss = running_loss / 10
-                    print(f"Episode {ep + 1},Epoch {e + 1},Loss: {loss}")
+                    print(f"Episode: {ep + 1},Epoch: {e + 1},i: {i},Loss: {loss}")
                     loss_list.append(loss)
                     running_loss = 0.0
 
