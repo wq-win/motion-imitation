@@ -1,3 +1,4 @@
+import copy
 import pickle
 import numpy as np
 from tqdm import tqdm
@@ -5,6 +6,7 @@ import matplotlib.pyplot as plt
 from scipy.spatial.transform import Rotation as R
 from collections import deque
 from numba import njit
+import matplotlib.pyplot as plt
 
 pace = [
   [0.00000, 0.00000, 0.43701, 0.49491, 0.53393, 0.49912, 0.46997, -0.12721, 0.07675, -0.95545, -0.25301, 0.18682, -1.14403, -0.19362, 0.14030, -0.77823, -0.09528, 0.05437, -0.97596],
@@ -52,11 +54,11 @@ pace = [
 # print(goal_joint_velocity)
 # print(i.as_quat())
 
-def generate_data(random_num, data):
+def generate_data_random(random_num, data, noise_factor):
     imu_euler, joint_angle = data
     sample_dim = 4 + joint_angle.shape[1]
     ref_num = imu_euler.shape[0]
-    data = {"input": np.empty((ref_num*random_num, sample_dim)),
+    new_data = {"input": np.empty((ref_num*random_num, sample_dim)),
             "label": np.empty((ref_num*random_num, joint_angle.shape[1]))}
     for i in range(random_num):
         imu_euler_noised = imu_euler + np.random.normal(0, 2 * np.pi * noise_factor, size=imu_euler.shape)
@@ -66,13 +68,73 @@ def generate_data(random_num, data):
         # Obs_noised = Obs + np.random.normal(0,,size=Obs.shape)
 
         joint_angle_noised = joint_angle + np.random.normal(0, 2 * np.pi * noise_factor, size=joint_angle.shape)
-        goal_joint_angle = np.vstack((pace[1:, 7:], pace[:1, 7:]))
+        goal_joint_angle = np.vstack((joint_angle[1:, :], joint_angle[:1, :]))
         goal_joint_velocity = ((goal_joint_angle - joint_angle_noised) / timestep)
 
-        data["input"][i*ref_num:(i+1)*ref_num, :] = np.hstack((imu_euler_noised_quat, joint_angle_noised))
-        data["label"][i*ref_num:(i+1)*ref_num, :] = goal_joint_velocity
-    return data
+        new_data["input"][i*ref_num:(i+1)*ref_num, :] = np.hstack((imu_euler_noised_quat, joint_angle_noised))
+        new_data["label"][i*ref_num:(i+1)*ref_num, :] = goal_joint_velocity
+    return new_data
 
+def repulse(fixed_points, moving_points, constant_factor):
+    points = np.empty_like(moving_points)
+    point_displacements = np.empty_like(moving_points)
+    for i in range(moving_points.shape[0]):
+        displacement = moving_points[i] - fixed_points
+        distance = np.linalg.norm(displacement, axis=1, keepdims=1)
+        new_displacement = constant_factor * np.sum(displacement/distance, axis=0)/fixed_points.shape[0]
+        new_moving_points =moving_points[i] + new_displacement
+        points[i, :] = new_moving_points
+        point_displacements[i, :] = new_displacement
+    return points, point_displacements
+def generate_data_repulse(data, initial_times, iteration_num, timestep=1 / 30):
+    imu_euler, joint_angle = data
+    sample_dim = 4 + joint_angle.shape[1]
+    ref_num = imu_euler.shape[0]
+
+    input_list = []
+    label_list = []
+
+    # goal_joint_angle0 = np.vstack((joint_angle[1:, :], joint_angle[:1, :]))
+    # goal_joint_velocity_1 = ((goal_joint_angle0 - joint_angle) / timestep)
+    # input_list.apend(np.hstack((imu_euler, joint_angle)))
+    # label_list.apend(goal_joint_velocity_1)
+    original_data = generate_data_random(initial_times, data, noise_factor=0.0)
+    input_list.append(original_data["input"])
+    label_list.append(original_data["label"])
+
+    # for i in range(initial_times):
+    #     imu_euler_noised = imu_euler + np.random.normal(0, 2 * np.pi * noise_factor, size=imu_euler.shape)
+    #     imu_euler_noised_R = R.from_euler("XYZ", imu_euler_noised)
+    #     imu_euler_noised_quat = imu_euler_noised_R.as_quat()
+    #     # print(imu_euler_noised_quat)
+    #     # Obs_noised = Obs + np.random.normal(0,,size=Obs.shape)
+    #     joint_angle_noise = np.random.normal(0, 2 * np.pi * noise_factor, size=joint_angle.shape)
+    #     joint_angle_noised = joint_angle + joint_angle_noise
+    #     goal_joint_velocity_1 = ((goal_joint_angle0 - joint_angle_noised) / timestep)
+    noised_data = generate_data_random(initial_times, data, noise_factor=0.001)
+    input_list.append(noised_data["input"])
+    label_list.append(noised_data["label"])
+
+    joint_angle_noised = noised_data["input"][:, 4:]
+    imu_euler_noised_quat = noised_data["input"][:, :4]
+
+    repulsed_joint_angle = joint_angle_noised
+    goal_joint_angle = np.vstack((joint_angle[2:, :], joint_angle[:2, :]))
+    goal_joint_angle_tiled = np.tile(goal_joint_angle, (initial_times, 1))
+    goal_joint_displacements = (goal_joint_angle_tiled - joint_angle_noised)
+
+    for i in range(iteration_num):
+        repulsed_joint_angle, point_displacements = repulse(joint_angle, repulsed_joint_angle, constant_factor=0.1)
+        goal_joint_angle = np.vstack((joint_angle[1:, :], joint_angle[:1, :]))
+        repulsed_joint_angle = repulsed_joint_angle + goal_joint_displacements
+        point_displacements = point_displacements + goal_joint_displacements
+        goal_joint_velocity = point_displacements/timestep
+        input_list.append(np.hstack((imu_euler_noised_quat, repulsed_joint_angle)))
+        label_list.append(goal_joint_velocity)
+
+    new_data = {"input": np.vstack(input_list),
+                "label": np.vstack(label_list)}
+    return new_data
 
 def learning_loop(KCtoMBONweight, KC, learning_rate, epochs, activate_indices):
     loss_list = [ 0 for _ in range(epochs)]
@@ -91,6 +153,24 @@ def learning_loop(KCtoMBONweight, KC, learning_rate, epochs, activate_indices):
         learning_rate *= epsilon
     return KCtoMBONweight, loss, loss_list, learning_rate, gradient.max()
 
+def trjactory_ploter(data):
+    # new_data = {"input": np.vstack(input_list),
+    #             "label": np.vstack(label_list)}
+    ax = plt.figure().add_subplot(projection='3d')
+
+    # Make the grid
+    x = data["input"][:, 4]
+    y = data["input"][:, 5]
+    z = data["input"][:, 6]
+
+    # Make the direction data for the arrows
+    u = data["label"][:, 0]
+    v = data["label"][:, 1]
+    w = data["label"][:, 2]
+
+    ax.quiver(x, y, z, u, v, w, normalize=True, length=0.04)
+
+    plt.show()
 
 if __name__ == "__main__":
 
@@ -108,12 +188,16 @@ if __name__ == "__main__":
     joint_angle = pace[:, 7:]
     loss_list = []
 
+    method = 'field' # 'random' #
     timestep = 0.01667
-    timestep = 1 / 60
+    timestep = 1 / 30
     noise_factor = 0.01
-    random_times = 1000
+    random_times = 10
 
-    learning_rate = 1e-4
+    initial_times = 1
+    interation_num = 20
+
+    learning_rate = 1e-5
     epsilon = 1 - 2e-4
     epochs = 20  # 迭代次数
     episode = 1000
@@ -134,16 +218,21 @@ if __name__ == "__main__":
     weights_PN2KC[np.arange(KC_dims)[:, None], top_weight_indices] = 1/num_dim_PN_sampled
     KCtoMBONweight = np.random.normal(0, 1/num_dim_KC_activated, size=(MBON_dims, KC_dims))
 
-
-
-    data = generate_data(random_times, (imu_euler, joint_angle))
+    data = (imu_euler, joint_angle)
+    #
+    if method == 'random':
+        data = generate_data_random(random_times, data, noise_factor)
+    elif method == 'field':
+        data = generate_data_repulse(data, initial_times, interation_num)
     for akey in data.keys():
         data[akey] = np.array(data[akey])
     print(len(data["input"]))
     print('data["input"]' + str(data["input"][0:39]))
     print('data["label"]' + str(data["label"][0:39]))
+
+    trjactory_ploter(data)
     for i in tqdm(range(episode)):
-        sample_index = np.random.choice(ref_len * random_times, batch_size)
+        sample_index = np.random.choice(data["input"].shape[0], batch_size)
         PN = np.array(data["input"][sample_index])
         goal_joint_velocity = np.array(data["label"][sample_index])
         KC_input = (weights_PN2KC @ PN.T).T
