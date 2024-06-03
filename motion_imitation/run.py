@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import os
 import inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -24,7 +25,6 @@ import numpy as np
 import os
 import random
 import tensorflow as tf
-# import tf_slim as slim
 import time
 
 from motion_imitation.envs import env_builder as env_builder
@@ -32,12 +32,12 @@ from motion_imitation.learning import imitation_policies as imitation_policies
 from motion_imitation.learning import ppo_imitation as ppo_imitation
 
 from stable_baselines.common.callbacks import CheckpointCallback
-import matplotlib.pyplot as plt
+
 TIMESTEPS_PER_ACTORBATCH = 4096
 OPTIM_BATCHSIZE = 256
 
 ENABLE_ENV_RANDOMIZER = True
-l = list()
+
 def set_rand_seed(seed=None):
   if seed is None:
     seed = int(time.time())
@@ -77,16 +77,12 @@ def build_model(env, num_procs, timesteps_per_actorbatch, optim_batchsize, outpu
                verbose=1)
   return model
 
-current_timestamp = time.time()  
-local_time = time.localtime(current_timestamp)  
-formatted_time = time.strftime("-%m-%d-", local_time)  
 
-def train(model, env, total_timesteps, output_dir="", int_save_freq=0,train_name=""):
+def train(model, env, total_timesteps, output_dir="", int_save_freq=0):
   if (output_dir == ""):
     save_path = None
   else:
-    model_name = train_name[30:].split('.txt')[0] + formatted_time
-    save_path = os.path.join(output_dir, model_name+"model.zip")
+    save_path = os.path.join(output_dir, "model.zip")
     if not os.path.exists(output_dir):
       os.makedirs(output_dir)
   
@@ -107,7 +103,7 @@ def test(model, env, num_procs, num_episodes=None):
   curr_return = 0
   sum_return = 0
   episode_count = 0
-  t = 0
+
   if num_episodes is not None:
     num_local_episodes = int(np.ceil(float(num_episodes) / num_procs))
   else:
@@ -117,21 +113,10 @@ def test(model, env, num_procs, num_episodes=None):
   while episode_count < num_local_episodes:
     a, _ = model.predict(o, deterministic=True)
     o, r, done, info = env.step(a)
-    t += 1
-    # print('IMU:',o[:4])
-    # print('IMU1:',o[4:8])
-    # print('IMU2:',o[8:12])
-    print('action:',o[12:24])
-    l.append(o[15])
-    if t == 500:
-      plt.plot(range(len(l)), l)
-      plt.show()
-    # print('motorAngle:',o[48:60])
     curr_return += r
 
     if done:
-        # o = env.reset()
-        
+        o = env.reset()
         sum_return += curr_return
         episode_count += 1
 
@@ -149,13 +134,13 @@ def test(model, env, num_procs, num_episodes=None):
 def main():
   arg_parser = argparse.ArgumentParser()
   arg_parser.add_argument("--seed", dest="seed", type=int, default=None)
-  arg_parser.add_argument("--mode", dest="mode", type=str, default="test")
+  arg_parser.add_argument("--mode", dest="mode", type=str, default="train")
   arg_parser.add_argument("--motion_file", dest="motion_file", type=str, default="motion_imitation/data/motions/dog_pace.txt")
   arg_parser.add_argument("--visualize", dest="visualize", action="store_true", default=False)
   arg_parser.add_argument("--output_dir", dest="output_dir", type=str, default="output")
   arg_parser.add_argument("--num_test_episodes", dest="num_test_episodes", type=int, default=None)
   arg_parser.add_argument("--model_file", dest="model_file", type=str, default="")
-  arg_parser.add_argument("--total_timesteps", dest="total_timesteps", type=int, default=2e5)
+  arg_parser.add_argument("--total_timesteps", dest="total_timesteps", type=int, default=2e8)
   arg_parser.add_argument("--int_save_freq", dest="int_save_freq", type=int, default=0) # save intermediate model every n policy steps
 
   args = arg_parser.parse_args()
@@ -185,8 +170,7 @@ def main():
             env=env, 
             total_timesteps=args.total_timesteps,
             output_dir=args.output_dir,
-            int_save_freq=args.int_save_freq,
-            train_name=args.motion_file)
+            int_save_freq=args.int_save_freq)
   elif args.mode == "test":
       test(model=model,
            env=env,

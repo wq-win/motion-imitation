@@ -285,9 +285,6 @@ class IMUSensor(sensor.BoxSpaceSensor):
   def get_observation_datatype(self) -> _DATATYPE_LIST:
     """Returns box-shape data type."""
     return self._datatype
-  
-  # def _get_observation(self) -> _ARRAY:
-  # GetTrueBaseOrientation
 
   def _get_observation(self) -> _ARRAY:
     if self._noisy_reading:

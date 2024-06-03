@@ -57,7 +57,7 @@ def main(_):
   if FLAGS.video_dir:
     log_id = p.startStateLogging(p.STATE_LOGGING_VIDEO_MP4, FLAGS.video_dir)
 
-  for _ in tqdm(range(8000)):
+  for _ in tqdm(range(800)):
     action = np.zeros(dim_action)
     for dim in range(dim_action):
       action[dim] = env.pybullet_client.readUserDebugParameter(
