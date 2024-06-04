@@ -1,5 +1,6 @@
 import os
 import inspect
+import pickle
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 os.sys.path.insert(0, parentdir)
@@ -62,53 +63,50 @@ def build_model(env, num_procs, timesteps_per_actorbatch, optim_batchsize, outpu
                verbose=1)
   return model
 
-
-def test(model, env, num_procs, num_episodes=None):
-  curr_return = 0
-  sum_return = 0
-  episode_count = 0
-
-  if num_episodes is not None:
-    num_local_episodes = int(np.ceil(float(num_episodes) / num_procs))
-  else:
-    num_local_episodes = np.inf
-
-  o = env.reset()
-  while episode_count < num_local_episodes:
-    a, _ = model.predict(o, deterministic=True)
-    o, r, done, info = env.step(a)
-    curr_return += r
-
-    if done:
-        o = env.reset()
-        sum_return += curr_return
-        episode_count += 1
-
-  sum_return = MPI.COMM_WORLD.allreduce(sum_return, MPI.SUM)
-  episode_count = MPI.COMM_WORLD.allreduce(episode_count, MPI.SUM)
-
-  mean_return = sum_return / episode_count
-
-  if MPI.COMM_WORLD.Get_rank() == 0:
-      print("Mean Return: " + str(mean_return))
-      print("Episode Count: " + str(episode_count))
-
-  return
+def test(model, env, num_episodes=None):
+    i = 0
+    EPISODE = 600  # one episode has 600 step
+    if num_episodes is None:
+      collect_nums = 10000
+    else:
+      collect_nums = num_episodes
+    o_list = []
+    a_list = []
+    o = env.reset()
+    print(f"eposide: {i // EPISODE + 1} / {collect_nums}")
+    while i < EPISODE * collect_nums:
+        i += 1
+        a, _ = model.predict(o, deterministic=True)
+        o_list.append(o)
+        a_list.append(a)
+        o, r, done, info = env.step(a)
+        if done:
+            o = env.reset()
+            print(f"eposide: {i // EPISODE + 1} / {collect_nums}")
+            # print(time.time()- start_time)
+    env.close()
+    allresult = {'o': o_list, 'a': a_list}
+    file_path = f'dataset/o_a_collect_nums_{collect_nums}.pkl'
+    directory = os.path.dirname(file_path)
+    if not os.path.exists(directory):
+      os.makedirs(directory)
+    with open(file_path, 'wb') as f:
+        pickle.dump(allresult, f)
+    return
 
 def main():
   arg_parser = argparse.ArgumentParser()
   arg_parser.add_argument("--seed", dest="seed", type=int, default=None)
   arg_parser.add_argument("--mode", dest="mode", type=str, default="test")
   arg_parser.add_argument("--motion_file", dest="motion_file", type=str, default="motion_imitation/data/motions/dog_pace.txt")
-  arg_parser.add_argument("--visualize", dest="visualize", action="store_true", default=True)
+  arg_parser.add_argument("--visualize", dest="visualize", action="store_true", default=False)
   arg_parser.add_argument("--output_dir", dest="output_dir", type=str, default="output")
-  arg_parser.add_argument("--num_test_episodes", dest="num_test_episodes", type=int, default=None)
-  arg_parser.add_argument("--model_file", dest="model_file", type=str, default="")
+  arg_parser.add_argument("--num_test_episodes", dest="num_test_episodes", type=int, default=1000)
+  arg_parser.add_argument("--model_file", dest="model_file", type=str, default="motion_imitation/data/policies/dog_pace.zip")
   arg_parser.add_argument("--total_timesteps", dest="total_timesteps", type=int, default=2e8)
   arg_parser.add_argument("--int_save_freq", dest="int_save_freq", type=int, default=0) # save intermediate model every n policy steps
 
   args = arg_parser.parse_args()
-  
   num_procs = MPI.COMM_WORLD.Get_size()
   os.environ["CUDA_VISIBLE_DEVICES"] = '-1'
   
@@ -133,7 +131,6 @@ def main():
   if args.mode == "test":
       test(model=model,
            env=env,
-           num_procs=num_procs,
            num_episodes=args.num_test_episodes)
   else:
       assert False, "Unsupported mode: " + args.mode
