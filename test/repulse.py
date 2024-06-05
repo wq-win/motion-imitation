@@ -1,8 +1,10 @@
-import pickle
 from matplotlib import pyplot as plt
 import numpy as np
 
 
+NEXT_INDEX = 1
+input_list = []
+output_list = []
 pace = [
   [0.00000, 0.00000, 0.43701, 0.49491, 0.53393, 0.49912, 0.46997, -0.12721, 0.07675, -0.95545, -0.25301, 0.18682, -1.14403, -0.19362, 0.14030, -0.77823, -0.09528, 0.05437, -0.97596],
   [0.01641, 0.00223, 0.43771, 0.48959, 0.53669, 0.50119, 0.47018, -0.12680, 0.11820, -0.94606, -0.28172, 0.03357, -1.16456, -0.20247, 0.17747, -0.77104, -0.09744, -0.05174, -0.93399],
@@ -46,27 +48,30 @@ pace = [
 ]
 pace_array = np.array(pace)
 
-# 
 p_motor_angle = pace_array[:, 7:]
-p_motor_angle = np.tile(p_motor_angle, (4, 1))
 p_motor_angle_next = np.vstack((p_motor_angle[1:, :], p_motor_angle[:1, :]))
 p_motor_angle_v = p_motor_angle_next - p_motor_angle
+input_list.append(p_motor_angle)
+output_list.append(p_motor_angle_v)
 
-with open('dataset/o_a_collect_nums_1.pkl', 'rb') as f:
-            allresult = pickle.load(f)
-o = np.array(allresult['o'], dtype=float)
-# a = np.array(allresult['a'])
-OFF_SET = 60
-o_motor_angle = o[5 + OFF_SET : 5 + OFF_SET + 39*2, 48:60]
-# o_motor_angle = o[7 : 7 + 39*2, 48:60]
-o_motor_angle[:, np.array([0, 6])] = -o_motor_angle[:, np.array([0, 6])]
-o_motor_angle[:, np.array([1, 4, 7, 10])] -= 0.6
-# o_motor_angle[:, np.array([2, 5, 8, 11])] -= -1.25
-o_motor_angle[:, np.array([2, 5, 8, 11])] -= -0.66
-o_motor_angle_next = np.vstack((o_motor_angle[1:, :], o_motor_angle[:1, :]))
-o_motor_angle_v = o_motor_angle_next - o_motor_angle
+# 1. find nearest point 
+# 2. velocity size is current nearest point  distance sigmoid
+# 3. velocity orientation is nearest point next point
 
+def sigmoid(x : np.array):
+    return .25 * x
+    return .5 * (1 / (1 + np.exp(-x)) - .5)
 
+def sample_random_point():
+    # 生成一个包含三个元素的数组，每个元素在 (-1, 1) 区间内
+    point = np.random.uniform(-np.pi, np.pi, size=12)
+    return point
+
+def find_nearest_point(input_point):
+    distance = input_point - p_motor_angle
+    norm_distance = np.linalg.norm(distance, axis=1, keepdims=True)
+    min_norm_distance_index = np.argmin(norm_distance)
+    return min_norm_distance_index, norm_distance[min_norm_distance_index]          
 
 def trajactory_ploter(start, end, x=0, y=1, z=2, u=0, v=1, w=2):
     ax = plt.figure().add_subplot(projection='3d')
@@ -81,43 +86,80 @@ def trajactory_ploter(start, end, x=0, y=1, z=2, u=0, v=1, w=2):
     V = end[:, v]
     W = end[:, w]
 
-    ax.quiver(X, Y, Z, U, V, W, normalize=True, length=0.04)
+    ax.quiver(X, Y, Z, U, V, W, normalize=False, length=0.4)
     ax.set_xlabel('X-axis')
     ax.set_ylabel('Y-axis')
     ax.set_zlabel('Z-axis')
     ax.set_title('3D Vector Field')
     plt.show()
     
-xyzuvw_dict = {'012': (0, 1, 2, 0, 1, 2),
-               '345': (3, 4, 5, 3, 4, 5),
-               '678': (6, 7, 8, 6, 7, 8),
-               '911': (9, 10, 11, 9, 10, 11)}
-# trajactory_ploter(o_motor_angle, o_motor_angle_v, *xyzuvw_dict['012'])
-trajactory_ploter(p_motor_angle, p_motor_angle_v, *xyzuvw_dict['012'])
+# 随机采样一个点
+new_point = sample_random_point()
+new_point.fill(0)
+new_point[0] = -0.2
+new_point[1] = 0
+new_point[2] = -1.3
 
-def multi_trajectory_ploter():
-    pass
+input_list.append(new_point)
+nearest_point_index, nearest_point_norm_distance = find_nearest_point(new_point)
+velocity_size = sigmoid(nearest_point_norm_distance)
+velocity_orientation = p_motor_angle[nearest_point_index + NEXT_INDEX] - new_point
+velocity = velocity_size * velocity_orientation 
+new_point = new_point + velocity
+output_list.append(velocity)
 
-# plt.figure()
-# for i in range(12):
+input_list.append(new_point)
+nearest_point_index, nearest_point_norm_distance = find_nearest_point(new_point)
+velocity_size = sigmoid(nearest_point_norm_distance)
+velocity = velocity_size * velocity_orientation 
+new_point = new_point + velocity
+output_list.append(velocity)
 
-#     plt.plot(range(len(p_motor_angle[:, i])), p_motor_angle[:, i], label=f'{i}')
-#     plt.legend()
-# plt.savefig('result/pace_motor_angle.png', dpi=300)
-# plt.show()
+input_list.append(new_point)
+nearest_point_index, nearest_point_norm_distance = find_nearest_point(new_point)
+velocity_size = sigmoid(nearest_point_norm_distance)
+velocity = velocity_size * velocity_orientation 
+new_point = new_point + velocity
+output_list.append(velocity)
 
-# plt.figure()
-# for i in range(12):
-#     plt.plot(range(len(o_motor_angle[:, i])), o_motor_angle[:, i], label=f'{i}')
-#     plt.legend()
-# plt.savefig('result/o_motor_angle.png', dpi=300)
-# plt.show()
+input_list.append(new_point)
+nearest_point_index, nearest_point_norm_distance = find_nearest_point(new_point)
+velocity_size = sigmoid(nearest_point_norm_distance)
+velocity = velocity_size * velocity_orientation 
+new_point = new_point + velocity
+output_list.append(velocity)
 
-# plt.figure()
-# for i in range(12):
-#     plt.subplot(4, 3, i+1)
-#     plt.plot(range(len(p_motor_angle[:, i]),), p_motor_angle[:, i], label=f'pma:{i}', linestyle='--')
-#     plt.plot(range(0, len(o_motor_angle[:, i]) * 2, 2), o_motor_angle[:, i], label=f'oma:{i}', linestyle='-')
-#     plt.legend()
-# # plt.savefig('result/compare_pace_with_o_motor_angle.png', dpi=300)
-# plt.show()   
+input_list.append(new_point)
+nearest_point_index, nearest_point_norm_distance = find_nearest_point(new_point)
+velocity_size = sigmoid(nearest_point_norm_distance)
+velocity = velocity_size * velocity_orientation 
+new_point = new_point + velocity
+output_list.append(velocity)
+
+input_list.append(new_point)
+nearest_point_index, nearest_point_norm_distance = find_nearest_point(new_point)
+velocity_size = sigmoid(nearest_point_norm_distance)
+velocity = velocity_size * velocity_orientation 
+new_point = new_point + velocity
+output_list.append(velocity)
+
+# def repulse(input_list, output_list, new_point):
+#     input_list.append(new_point)
+#     nearest_point_index, nearest_point_norm_distance = find_nearest_point(new_point)
+#     velocity_size = sigmoid(nearest_point_norm_distance)
+#     velocity = velocity_size * velocity_orientation 
+#     new_point = new_point + velocity
+#     output_list.append(velocity)
+
+# repulse(input_list, output_list, new_point)
+
+input_list.append(new_point)
+nearest_point_index, nearest_point_norm_distance = find_nearest_point(new_point)
+velocity_size = sigmoid(nearest_point_norm_distance)
+velocity = velocity_size * velocity_orientation 
+new_point = new_point + velocity
+output_list.append(velocity)
+
+input_list = np.vstack(input_list)
+output_list = np.vstack(output_list)
+trajactory_ploter(input_list, output_list,)
