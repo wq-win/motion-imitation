@@ -48,7 +48,7 @@ pace = [
 ]
 pace_array = np.array(pace)
 
-p_motor_angle = pace_array[:, 7:]
+p_motor_angle = pace_array[:, 7:10]
 p_motor_angle_next = np.vstack((p_motor_angle[1:, :], p_motor_angle[:1, :]))
 p_motor_angle_v = p_motor_angle_next - p_motor_angle
 input_list.append(p_motor_angle)
@@ -84,10 +84,10 @@ def set_axes_equal(ax):
     ax.set_xlim3d([x_middle - plot_radius, x_middle + plot_radius])
     ax.set_ylim3d([y_middle - plot_radius, y_middle + plot_radius])
     ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
- 
+    
 def sigmoid(x : np.array):
-    # return .5 * x
-    return .5 * (1 / (1 + np.exp(-x)) - .5)
+    return .5 * x
+    # return .5 * (1 / (1 + np.exp(-x)) - .5)
 
 def sample_random_point():
     # 生成一个包含三个元素的数组，每个元素在 (-1, 1) 区间内
@@ -97,7 +97,7 @@ def sample_random_point():
     dim1min, dim1max = min(p_motor_angle[:, 1]), max(p_motor_angle[:, 1])
     dim2min, dim2max = min(p_motor_angle[:, 2]), max(p_motor_angle[:, 2])
     
-    for i in range(4):
+    for i in range(1):
         point.append(np.random.uniform(2 * dim0min - dim0max, 2 * dim0max - dim0min))
         point.append(np.random.uniform(2 * dim1min - dim1max, 2 * dim1max - dim1min))
         point.append(np.random.uniform(2 * dim2min - dim2max, 2 * dim2max - dim2min))
@@ -128,6 +128,9 @@ def trajactory_ploter(start, end, x=0, y=1, z=2, u=0, v=1, w=2):
     ax.set_zlabel('Z-axis')
     ax.set_title('3D Vector Field')
     set_axes_equal(ax)
+    # ax.set_box_aspect([1, 1, 1])
+    # plt.grid()
+    # plt.axis('auto')
     
     plt.show()
 
