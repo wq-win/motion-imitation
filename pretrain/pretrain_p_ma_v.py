@@ -1,8 +1,40 @@
-import pickle
-from matplotlib import pyplot as plt
 import numpy as np
+import os
+import sys
+import time
+import pickle
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+import matplotlib.pyplot as plt
 
 
+NOWTIME = time.strftime("%m-%d_%H-%M-%S", time.localtime())
+BATCH_SIZE = 2
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+TIMESTEP = 1 / 30
+NEXT_MA = 2
+
+class Net(nn.Module):
+    def __init__(self, input_dim, output_dim):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(input_dim, 512)
+        self.fc2 = nn.Linear(512, 128)
+        self.fc3 = nn.Linear(128, 32)
+        self.fc4 = nn.Linear(32, output_dim)
+
+    def forward(self, x):
+        x = self.fc1(x)
+        x = F.relu(x)
+        x = self.fc2(x)
+        x = F.relu(x)
+        x = self.fc3(x)
+        x = F.relu(x)
+        return self.fc4(x)
+      
 pace = [
   [0.00000, 0.00000, 0.43701, 0.49491, 0.53393, 0.49912, 0.46997, -0.12721, 0.07675, -0.95545, -0.25301, 0.18682, -1.14403, -0.19362, 0.14030, -0.77823, -0.09528, 0.05437, -0.97596],
   [0.01641, 0.00223, 0.43771, 0.48959, 0.53669, 0.50119, 0.47018, -0.12680, 0.11820, -0.94606, -0.28172, 0.03357, -1.16456, -0.20247, 0.17747, -0.77104, -0.09744, -0.05174, -0.93399],
@@ -44,26 +76,57 @@ pace = [
   [0.67005, 0.00126, 0.43824, 0.51299, 0.51174, 0.49342, 0.48113, -0.12047, 0.05387, -0.95210, -0.21892, 0.23998, -1.07604, -0.22485, 0.10828, -0.79239, -0.08403, 0.22582, -1.04134],
   [0.68773, 0.00000, 0.43701, 0.50903, 0.51581, 0.49242, 0.48203, -0.12785, 0.09815, -0.95073, -0.26299, 0.10340, -1.12756, -0.23415, 0.13683, -0.78085, -0.07723, 0.11886, -1.01564]
 ]
-pace_array = np.array(pace)[:, 7:]
 
-pace_array[:, np.array([0, 6])] = -pace_array[:, np.array([0, 6])]
-pace_array[:, np.array([1, 4, 7, 10])] += .6
-pace_array[:, np.array([2, 5, 8, 11])] += -.66
-pace_array_next = np.vstack((pace_array[2:, :], pace_array[:2, :]))
-pace_array_v = pace_array_next - pace_array
+if __name__ == "__main__":
+    pace_array = np.array(pace)
+    p_ma = pace_array[:, 7:]
+    p_ma[:, np.array([3, 9])] = -p_ma[:, np.array([3, 9])]
+    p_ma[:, np.array([2, 5, 8, 11])] += 0.35
+    p_ma_next = np.vstack((p_ma[NEXT_MA:, :], p_ma[:NEXT_MA, :]))
+    p_ma_v = (p_ma_next - p_ma) / TIMESTEP
+    
+    input_dim = len(p_ma[0])
+    output_dim = len(p_ma_next[0])
 
-with open('dataset/o_a_collect_nums_1.pkl', 'rb') as f:
-            allresult = pickle.load(f)
-o = np.array(allresult['o'], dtype=float)
-OFF_SET = 5
-o_motor_angle = o[OFF_SET : OFF_SET + 39, 48:60]
-o_motor_angle_next = np.vstack((o_motor_angle[1:, :], o_motor_angle[:1, :]))
-o_motor_angle_v = o_motor_angle_next - o_motor_angle
+    loss_list = list()
+    episode = 10
+    epoch = 10
+    lambda1 = 0.2
+    learning_rate = 1e-4
 
-plt.figure()
-for i in range(12):
-    plt.subplot(4, 3, i+1)
-    plt.plot(range(len(pace_array[:, i]),), pace_array[:, i], label=f'pma:{i}', linestyle='--')
-    plt.plot(range(len(o_motor_angle[:, i])), o_motor_angle[:, i], label=f'oma:{i}', linestyle='-')
-    plt.legend()
-plt.show()   
+    p_ma = torch.tensor(p_ma, dtype=torch.float32).to(DEVICE)
+    p_ma_v = torch.tensor(p_ma_next, dtype=torch.float32).to(DEVICE)
+    train_dataset = TensorDataset(p_ma, p_ma_v)
+    train_loader = DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=False)
+
+    model = Net(input_dim, output_dim)
+    model.to(DEVICE)
+    criterion = nn.MSELoss()
+
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    model.train()
+    for ep in range(episode):
+        for e in range(epoch):
+            running_loss = 0.0
+            for i, (inputs, labels) in enumerate(train_loader, 0):                   
+                outputs = model(inputs)
+                loss = criterion(outputs, labels)              
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+                running_loss += loss.item()
+                # print(i)
+                if i % BATCH_SIZE == BATCH_SIZE - 1:
+                    loss = running_loss / 10
+                    print(f"Episode: {ep + 1},Epoch: {e + 1},i: {i},Loss: {loss}")
+                    loss_list.append(loss)
+                    running_loss = 0.0
+
+    plt.plot(range(len(loss_list)), loss_list)
+    plt.savefig('result/loss/pace_ma_loss.png', dpi=300)
+    plt.show()
+    file_path = f"pretrain_model/p_ma_v_model_{NOWTIME}.pkl"
+    directory = os.path.dirname(file_path)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    torch.save(model.state_dict(), file_path)

@@ -56,19 +56,20 @@ with open('dataset/o_a_collect_nums_1.pkl', 'rb') as f:
             allresult = pickle.load(f)
 o = np.array(allresult['o'], dtype=float)
 # a = np.array(allresult['a'])
-OFF_SET = 60
-o_motor_angle = o[5 + OFF_SET : 5 + OFF_SET + 39*2, 48:60]
-# o_motor_angle = o[7 : 7 + 39*2, 48:60]
-o_motor_angle[:, np.array([0, 6])] = -o_motor_angle[:, np.array([0, 6])]
-o_motor_angle[:, np.array([1, 4, 7, 10])] -= 0.6
+OFF_SET = 5
+OFF_SET_INREGULAR = 60
+o_motor_angle = o[OFF_SET + OFF_SET_INREGULAR : OFF_SET + OFF_SET_INREGULAR + 39*2, 48:60]
+o_motor_angle_offset = o[OFF_SET + OFF_SET_INREGULAR : OFF_SET + OFF_SET_INREGULAR + 39*2, 48:60]
+o_motor_angle_offset[:, np.array([0, 6])] = -o_motor_angle_offset[:, np.array([0, 6])]
+o_motor_angle_offset[:, np.array([1, 4, 7, 10])] -= 0.6
 # o_motor_angle[:, np.array([2, 5, 8, 11])] -= -1.25
-o_motor_angle[:, np.array([2, 5, 8, 11])] -= -0.66
-o_motor_angle_next = np.vstack((o_motor_angle[1:, :], o_motor_angle[:1, :]))
-o_motor_angle_v = o_motor_angle_next - o_motor_angle
+o_motor_angle_offset[:, np.array([2, 5, 8, 11])] -= -0.66
+o_motor_angle_offset_next = np.vstack((o_motor_angle_offset[1:, :], o_motor_angle_offset[:1, :]))
+o_motor_angle_offset_v = o_motor_angle_offset_next - o_motor_angle_offset
 
 
 
-def trajactory_ploter(start, end, x=0, y=1, z=2, u=0, v=1, w=2):
+def trajactory_ploter(start, end, title, x=0, y=1, z=2, u=0, v=1, w=2):
     ax = plt.figure().add_subplot(projection='3d')
 
     # Make the grid
@@ -85,15 +86,15 @@ def trajactory_ploter(start, end, x=0, y=1, z=2, u=0, v=1, w=2):
     ax.set_xlabel('X-axis')
     ax.set_ylabel('Y-axis')
     ax.set_zlabel('Z-axis')
-    ax.set_title('3D Vector Field')
+    ax.set_title(title)
     plt.show()
     
 xyzuvw_dict = {'012': (0, 1, 2, 0, 1, 2),
                '345': (3, 4, 5, 3, 4, 5),
                '678': (6, 7, 8, 6, 7, 8),
                '911': (9, 10, 11, 9, 10, 11)}
-# trajactory_ploter(o_motor_angle, o_motor_angle_v, *xyzuvw_dict['012'])
-trajactory_ploter(p_motor_angle, p_motor_angle_v, *xyzuvw_dict['012'])
+trajactory_ploter(o_motor_angle_offset, o_motor_angle_offset_v, 'o_ma', *xyzuvw_dict['012'], )
+trajactory_ploter(p_motor_angle, p_motor_angle_v, 'p_ma', *xyzuvw_dict['012'])
 
 def multi_trajectory_ploter():
     pass
@@ -103,21 +104,22 @@ def multi_trajectory_ploter():
 
 #     plt.plot(range(len(p_motor_angle[:, i])), p_motor_angle[:, i], label=f'{i}')
 #     plt.legend()
-# plt.savefig('result/pace_motor_angle.png', dpi=300)
+# # plt.savefig('result/pace_motor_angle.png', dpi=300)
 # plt.show()
 
 # plt.figure()
 # for i in range(12):
-#     plt.plot(range(len(o_motor_angle[:, i])), o_motor_angle[:, i], label=f'{i}')
+#     plt.plot(range(len(o_motor_angle_offset[:, i])), o_motor_angle_offset[:, i], label=f'{i}')
 #     plt.legend()
-# plt.savefig('result/o_motor_angle.png', dpi=300)
+# # plt.savefig('result/o_motor_angle.png', dpi=300)
 # plt.show()
 
 # plt.figure()
 # for i in range(12):
 #     plt.subplot(4, 3, i+1)
 #     plt.plot(range(len(p_motor_angle[:, i]),), p_motor_angle[:, i], label=f'pma:{i}', linestyle='--')
-#     plt.plot(range(0, len(o_motor_angle[:, i]) * 2, 2), o_motor_angle[:, i], label=f'oma:{i}', linestyle='-')
+#     plt.plot(range(len(o_motor_angle[:, i])), o_motor_angle[:, i], label=f'oma:{i}', linestyle='-')
+#     plt.plot(range(0, len(o_motor_angle_offset[:, i]) * 2, 2), o_motor_angle_offset[:, i], label=f'oma_offset:{i}', linestyle=':')
 #     plt.legend()
 # # plt.savefig('result/compare_pace_with_o_motor_angle.png', dpi=300)
 # plt.show()   
