@@ -1,10 +1,8 @@
+import pickle
 from matplotlib import pyplot as plt
 import numpy as np
 
 
-CONSTAN_FACTOR = 100
-input_list = []
-output_list = []
 pace = [
   [0.00000, 0.00000, 0.43701, 0.49491, 0.53393, 0.49912, 0.46997, -0.12721, 0.07675, -0.95545, -0.25301, 0.18682, -1.14403, -0.19362, 0.14030, -0.77823, -0.09528, 0.05437, -0.97596],
   [0.01641, 0.00223, 0.43771, 0.48959, 0.53669, 0.50119, 0.47018, -0.12680, 0.11820, -0.94606, -0.28172, 0.03357, -1.16456, -0.20247, 0.17747, -0.77104, -0.09744, -0.05174, -0.93399],
@@ -46,110 +44,26 @@ pace = [
   [0.67005, 0.00126, 0.43824, 0.51299, 0.51174, 0.49342, 0.48113, -0.12047, 0.05387, -0.95210, -0.21892, 0.23998, -1.07604, -0.22485, 0.10828, -0.79239, -0.08403, 0.22582, -1.04134],
   [0.68773, 0.00000, 0.43701, 0.50903, 0.51581, 0.49242, 0.48203, -0.12785, 0.09815, -0.95073, -0.26299, 0.10340, -1.12756, -0.23415, 0.13683, -0.78085, -0.07723, 0.11886, -1.01564]
 ]
-pace_array = np.array(pace)
-p_motor_angle = pace_array[:, 7:]
-p_motor_angle_next = np.vstack((p_motor_angle[1:, :], p_motor_angle[:1, :]))
-p_motor_angle_v = p_motor_angle_next - p_motor_angle
-input_list.append(p_motor_angle)
-output_list.append(p_motor_angle_v)
+p_ma = np.array(pace)[:, 7:]
 
-def set_axes_equal(ax):
-    """
-    Make axes of 3D plot have equal scale so that spheres appear as spheres,
-    cubes as cubes, etc.
+p_ma[:, np.array([0, 6])] = -p_ma[:, np.array([0, 6])]
+p_ma[:, np.array([1, 4, 7, 10])] += 0.6
+p_ma[:, np.array([2, 5, 8, 11])] += -0.66
+pace_array_next = np.vstack((p_ma[1:, :], p_ma[:1, :]))
+pace_array_v = pace_array_next - p_ma
 
-    Input
-      ax: a matplotlib axis, e.g., as output from plt.gca().
-    """
+with open('dataset/o_a_collect_nums_1.pkl', 'rb') as f:
+            allresult = pickle.load(f)
+o = np.array(allresult['o'], dtype=float)
+OFF_SET = 8
+o_motor_angle = o[OFF_SET : OFF_SET + 39, 48:60]
+o_motor_angle_next = np.vstack((o_motor_angle[1:, :], o_motor_angle[:1, :]))
+o_motor_angle_v = o_motor_angle_next - o_motor_angle
 
-    x_limits = ax.get_xlim3d()
-    y_limits = ax.get_ylim3d()
-    z_limits = ax.get_zlim3d()
-
-    x_range = abs(x_limits[1] - x_limits[0])
-    x_middle = np.mean(x_limits)
-    y_range = abs(y_limits[1] - y_limits[0])
-    y_middle = np.mean(y_limits)
-    z_range = abs(z_limits[1] - z_limits[0])
-    z_middle = np.mean(z_limits)
-
-    # The plot bounding box is a sphere in the sense of the infinity
-    # norm, hence I call half the max range the plot radius.
-    plot_radius = 0.5*max([x_range, y_range, z_range])
-
-    ax.set_xlim3d([x_middle - plot_radius, x_middle + plot_radius])
-    ax.set_ylim3d([y_middle - plot_radius, y_middle + plot_radius])
-    ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
-    
-def sigmoid(x : np.array):
-    return .5 * x
-    # return (1 / (1 + np.exp(-x)) - .5)
-
-def sample_random_point():
-    # point = np.random.uniform(-np.pi, np.pi, size=12)
-    point = []
-    for i in range(p_motor_angle.shape[1]):
-        dim_min, dim_max = min(p_motor_angle[:, i]), max(p_motor_angle[:, i])
-        point.append(np.random.uniform(2 * dim_min - dim_max, 2 * dim_max - dim_min))
-    return point
-
-def calculate_point_vertical_direction(point):
-    displacement = p_motor_angle - point
-    distances = np.linalg.norm(displacement, axis=1, keepdims=True)
-    forces = displacement / (distances ** 2)
-    force = np.sum(forces, axis=0) / forces.shape[0]
-    force_mag = np.linalg.norm(force)
-    direction = force / force_mag
-    return direction, distances
-
-def calculate_point_horizontal_direction(distances):
-    distance = np.sum(1 / (distances ** 2), axis=0)
-    forces = p_motor_angle_v / (distances ** 2)
-    force = np.sum(forces, axis=0)
-    direction = force / distance
-    return 10 * direction
-    
-def repulse(point, direction, distances):
-    speed = 1 / np.sum(1 / distances) / distances.shape[0] * CONSTAN_FACTOR
-    displacement = direction * speed 
-    new_point = point + displacement
-    return displacement, new_point
-
-def trajactory_ploter(start, end, x=0, y=1, z=2, u=0, v=1, w=2):
-    ax = plt.figure().add_subplot(projection='3d')
-
-    # Make the grid
-    X = start[:, x]
-    Y = start[:, y]
-    Z = start[:, z]
-
-    # Make the direction data for the arrows
-    U = end[:, u]
-    V = end[:, v]
-    W = end[:, w]
-
-    ax.quiver(X, Y, Z, U, V, W, normalize=True, length=0.04)
-    ax.set_xlabel('X-axis')
-    ax.set_ylabel('Y-axis')
-    ax.set_zlabel('Z-axis')
-    ax.set_title('3D Vector Field')
-    set_axes_equal(ax)
-    
-    plt.show()
-    
-if __name__ == '__main__':
-    for _ in range(100):  
-        point = sample_random_point()
-        for i in range(10):
-            input_list.append(point)
-            v_direction, distances = calculate_point_vertical_direction(point)
-            h_direction = calculate_point_horizontal_direction(distances)
-            direction = v_direction + h_direction
-            # direction = v_direction
-            # direction = h_direction
-            displacement, point = repulse(point, direction, distances)
-            output_list.append(displacement)
-
-    input_list = np.vstack(input_list)
-    output_list = np.vstack(output_list)
-    trajactory_ploter(input_list, output_list,)
+plt.figure()
+for i in range(12):
+    plt.subplot(4, 3, i+1)
+    plt.plot(range(len(p_ma[:, i]),), p_ma[:, i], label=f'pma:{i}', linestyle='--')
+    plt.plot(range(0, len(o_motor_angle[:, i]) * 2, 2), o_motor_angle[:, i], label=f'oma:{i}', linestyle='-')
+    plt.legend()
+plt.show()   

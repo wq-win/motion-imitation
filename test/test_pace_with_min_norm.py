@@ -1,6 +1,13 @@
 import pickle
-from matplotlib import pyplot as plt
 import numpy as np
+from motion_imitation.envs import env_builder
+from mpi4py import MPI
+import os
+import inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+print(parentdir)
+os.sys.path.insert(0, parentdir)
 
 
 pace = [
@@ -44,26 +51,69 @@ pace = [
   [0.67005, 0.00126, 0.43824, 0.51299, 0.51174, 0.49342, 0.48113, -0.12047, 0.05387, -0.95210, -0.21892, 0.23998, -1.07604, -0.22485, 0.10828, -0.79239, -0.08403, 0.22582, -1.04134],
   [0.68773, 0.00000, 0.43701, 0.50903, 0.51581, 0.49242, 0.48203, -0.12785, 0.09815, -0.95073, -0.26299, 0.10340, -1.12756, -0.23415, 0.13683, -0.78085, -0.07723, 0.11886, -1.01564]
 ]
-pace_array = np.array(pace)[:, 7:]
+p_ma = np.array(pace)[:, 7:]
+p_ma[:, np.array([0, 6])] = -p_ma[:, np.array([0, 6])]
+p_ma[:, np.array([1, 4, 7, 10])] += 0.6   
+p_ma[:, np.array([2, 5, 8, 11])] += -0.66
+# p_ma[:, np.array([0, 3, 6, 9])] = -p_ma[:, np.array([0, 3, 6, 9])]
+# p_ma[:, np.array([1, 4, 7, 10])] -= 0.67
+# # p_ma[:, np.array([2, 5, 8, 11])] -= -1.25
 
-pace_array[:, np.array([0, 6])] = -pace_array[:, np.array([0, 6])]
-pace_array[:, np.array([1, 4, 7, 10])] += .6
-pace_array[:, np.array([2, 5, 8, 11])] += -.66
-pace_array_next = np.vstack((pace_array[2:, :], pace_array[:2, :]))
-pace_array_v = pace_array_next - pace_array
+ENABLE_ENV_RANDOMIZER = True
+motion_file = "motion_imitation/data/motions/dog_pace.txt"
+num_procs = MPI.COMM_WORLD.Get_size()
+mode = "test"
+enable_env_rand = ENABLE_ENV_RANDOMIZER and (mode != "test")
+visualize = True
 
-with open('dataset/o_a_collect_nums_1.pkl', 'rb') as f:
-            allresult = pickle.load(f)
-o = np.array(allresult['o'], dtype=float)
-OFF_SET = 5
-o_motor_angle = o[OFF_SET : OFF_SET + 39, 48:60]
-o_motor_angle_next = np.vstack((o_motor_angle[1:, :], o_motor_angle[:1, :]))
-o_motor_angle_v = o_motor_angle_next - o_motor_angle
+def find_nearest_point(input_point, fixed_points):
+    direction = input_point - fixed_points
+    norm_distance = np.linalg.norm(direction, axis=1, keepdims=True)
+    min_norm_distance_index = np.argmin(norm_distance)
+    return min_norm_distance_index, norm_distance[min_norm_distance_index]  
 
-plt.figure()
-for i in range(12):
-    plt.subplot(4, 3, i+1)
-    plt.plot(range(len(pace_array[:, i]),), pace_array[:, i], label=f'pma:{i}', linestyle='--')
-    plt.plot(range(len(o_motor_angle[:, i])), o_motor_angle[:, i], label=f'oma:{i}', linestyle='-')
-    plt.legend()
-plt.show()   
+def trans_o_matoa(o):
+    o_ma = o[48:60]
+    index, _ = find_nearest_point(o_ma, p_ma)
+    o_ma = p_ma[(index + 1) % len(p_ma)]
+    o_ma[np.array([0, 3, 6, 9])] = -o_ma[np.array([0, 3, 6, 9])]
+    o_ma[np.array([1, 4, 7, 10])] -= 0.67
+    o_ma[np.array([2, 5, 8, 11])] -= -1.25
+    return o_ma, index + 1
+
+def main():   
+    env = env_builder.build_imitation_env(motion_files=[motion_file],
+                                            num_parallel_envs=num_procs,
+                                            mode=mode,
+                                            enable_randomizer=enable_env_rand,
+                                            enable_rendering=visualize)
+    env.render(mode='rgb_array')
+    o = env.reset()
+    o_ma, index = trans_o_matoa(o)
+    # current_index = index
+    while True:
+        # print(current_index, index)
+        action = o_ma
+        o, r, d, _ = env.step(action)
+        o_ma, index = trans_o_matoa(o)
+        # if abs(current_index - index) > 4:
+        #     o_ma = p_ma[(current_index + 2) % len(p_ma)]
+        #     o_ma[np.array([0, 3, 6, 9])] = -o_ma[np.array([0, 3, 6, 9])]
+        #     o_ma[np.array([1, 4, 7, 10])] -= 0.67
+        #     o_ma[np.array([2, 5, 8, 11])] -= -1.25
+        # current_index = (current_index + 2) % len(p_ma)
+        # elif abs(current_index - index) == 0:
+        #     o_ma = p_ma[(current_index + 2) % len(p_ma)]
+        #     o_ma[np.array([0, 3, 6, 9])] = -o_ma[np.array([0, 3, 6, 9])]
+        #     o_ma[np.array([1, 4, 7, 10])] -= 0.67
+        #     o_ma[np.array([2, 5, 8, 11])] -= -1.25
+        #     current_index = (current_index + 2) % len(p_ma)
+        # current_index = index    
+            
+        # if d:
+        #     o = env.reset()  
+        #     o_ma = trans_o_matoa(o)
+        
+    env.close()
+if __name__ == '__main__':
+    main()
