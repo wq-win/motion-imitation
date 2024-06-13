@@ -38,13 +38,13 @@ def main():
     i = 0
     while True:
         ma[i][np.array([0, 3, 6, 9])] = -ma[i][np.array([0, 3, 6, 9])]
-        ma[i][np.array([1, 4, 7, 10])] -= 0.6
-        ma[i][np.array([2, 5, 8, 11])] -= -.66 # -1.25
+        ma[i][np.array([1, 4, 7, 10])] -= 0.67
+        ma[i][np.array([2, 5, 8, 11])] -= -1.25  # -.66
         o, r, d, _ = env.step(ma[i])
         # print(ma[i])
-        if d:
-            print(i)
-            env.reset()            
+        # if d:
+        #     print(i)
+        #     env.reset()            
             # i = 0
         i += 1
         if i % 600 == 0:

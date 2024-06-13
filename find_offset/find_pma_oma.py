@@ -1,15 +1,6 @@
 import pickle
-
+from matplotlib import pyplot as plt
 import numpy as np
-from motion_imitation.envs import env_builder
-from mpi4py import MPI
-import os
-import inspect
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(currentdir)
-print(parentdir)
-os.sys.path.insert(0, parentdir)
-from pretrain import pretrain_fc_deep 
 
 
 pace = [
@@ -53,56 +44,82 @@ pace = [
   [0.67005, 0.00126, 0.43824, 0.51299, 0.51174, 0.49342, 0.48113, -0.12047, 0.05387, -0.95210, -0.21892, 0.23998, -1.07604, -0.22485, 0.10828, -0.79239, -0.08403, 0.22582, -1.04134],
   [0.68773, 0.00000, 0.43701, 0.50903, 0.51581, 0.49242, 0.48203, -0.12785, 0.09815, -0.95073, -0.26299, 0.10340, -1.12756, -0.23415, 0.13683, -0.78085, -0.07723, 0.11886, -1.01564]
 ]
+pace_array = np.array(pace)
+
+# 
+p_motor_angle = pace_array[:, 7:]
+p_motor_angle = np.tile(p_motor_angle, (4, 1))
+p_motor_angle_next = np.vstack((p_motor_angle[1:, :], p_motor_angle[:1, :]))
+p_motor_angle_v = p_motor_angle_next - p_motor_angle
+
+with open('dataset/o_a_collect_nums_1.pkl', 'rb') as f:
+            allresult = pickle.load(f)
+o = np.array(allresult['o'], dtype=float)
+# a = np.array(allresult['a'])
+OFF_SET = 5
+OFF_SET_INREGULAR = 60
+o_motor_angle = o[OFF_SET + OFF_SET_INREGULAR : OFF_SET + OFF_SET_INREGULAR + 39*2, 48:60]
+o_motor_angle_offset = o[OFF_SET + OFF_SET_INREGULAR : OFF_SET + OFF_SET_INREGULAR + 39*2, 48:60]
+o_motor_angle_offset[:, np.array([0, 6])] = -o_motor_angle_offset[:, np.array([0, 6])]
+o_motor_angle_offset[:, np.array([1, 4, 7, 10])] -= 0.6
+# o_motor_angle[:, np.array([2, 5, 8, 11])] -= -1.25
+o_motor_angle_offset[:, np.array([2, 5, 8, 11])] -= -0.66
+o_motor_angle_offset_next = np.vstack((o_motor_angle_offset[1:, :], o_motor_angle_offset[:1, :]))
+o_motor_angle_offset_v = o_motor_angle_offset_next - o_motor_angle_offset
 
 
-ENABLE_ENV_RANDOMIZER = True
-motion_file = "motion_imitation/data/motions/dog_pace.txt"
-num_procs = MPI.COMM_WORLD.Get_size()
-mode = "test"
-enable_env_rand = ENABLE_ENV_RANDOMIZER and (mode != "test")
-visualize = True
 
-EPISODE = 100
+def trajactory_ploter(start, end, title, x=0, y=1, z=2, u=0, v=1, w=2):
+    ax = plt.figure().add_subplot(projection='3d')
 
-def main(para):   
-    env = env_builder.build_imitation_env(motion_files=[motion_file],
-                                            num_parallel_envs=num_procs,
-                                            mode=mode,
-                                            enable_randomizer=enable_env_rand,
-                                            enable_rendering=visualize)
-    pace_array = np.array(pace)
-    p_ma = pace_array[:, 7:]
-    p_ma[:, np.array([3, 9])] = -p_ma[:, np.array([3, 9])]
-    # p_ma[:, np.array([1, 4, 7, 10])] += 0.6
-    p_ma[:, np.array([1, 4, 7, 10])] -= 0.67
-    # p_ma[:, np.array([2, 5, 8, 11])] += -0.66
-    p_ma[:, np.array([2, 5, 8, 11])] -= -1.25
-    env.reset()
-    env.render(mode='rgb_array')
-    sum_step = 0
-    sum_step_list = []
-    i = 0
-    epi = 0
-    while True:
-        action = p_ma[i]
-        # sum_step += 1
-        o, r, d, _ = env.step(action)
-        # if d:
-            # sum_step_list.append(sum_step)
-            # env.reset()            
-            # sum_step = 0
-            # epi += 1
-            # if epi > EPISODE:
-            #     break
-        i += 2
-        i = i % len(pace)
-    env.close()
-    print(f'para:{para}, step_ave:{sum(sum_step_list) / len(sum_step_list)}, max:{max(sum_step_list)}')
-    return sum(sum_step_list) / len(sum_step_list)
-if __name__ == '__main__':
-    interpreted = np.arange(0.00, 0.42, 0.01)
-    result_list = []
-    for i in range(len(interpreted)):
-        result_list.append(main(para=interpreted[i]))
-        
-    print(interpreted[result_list.index(max(result_list))], max(result_list))
+    # Make the grid
+    X = start[:, x]
+    Y = start[:, y]
+    Z = start[:, z]
+
+    # Make the direction data for the arrows
+    U = end[:, u]
+    V = end[:, v]
+    W = end[:, w]
+
+    ax.quiver(X, Y, Z, U, V, W, normalize=True, length=0.04)
+    ax.set_xlabel('X-axis')
+    ax.set_ylabel('Y-axis')
+    ax.set_zlabel('Z-axis')
+    ax.set_title(title)
+    plt.show()
+    
+xyzuvw_dict = {'012': (0, 1, 2, 0, 1, 2),
+               '345': (3, 4, 5, 3, 4, 5),
+               '678': (6, 7, 8, 6, 7, 8),
+               '911': (9, 10, 11, 9, 10, 11)}
+# trajactory_ploter(o_motor_angle_offset, o_motor_angle_offset_v, 'o_ma', *xyzuvw_dict['012'], )
+# trajactory_ploter(p_motor_angle, p_motor_angle_v, 'p_ma', *xyzuvw_dict['012'])
+
+def multi_trajectory_ploter():
+    pass
+
+# plt.figure()
+# for i in range(12):
+
+#     plt.plot(range(len(p_motor_angle[:, i])), p_motor_angle[:, i], label=f'{i}')
+#     plt.legend()
+# # plt.savefig('result/pace_motor_angle.png', dpi=300)
+# plt.show()
+
+# plt.figure()
+# for i in range(12):
+#     plt.plot(range(len(o_motor_angle_offset[:, i])), o_motor_angle_offset[:, i], label=f'{i}')
+#     plt.legend()
+# # plt.savefig('result/o_motor_angle.png', dpi=300)
+# plt.show()
+
+plt.figure()
+for i in range(12):
+    plt.subplot(4, 3, i+1)
+    plt.plot(range(len(p_motor_angle[:, i]),), p_motor_angle[:, i], label=f'pma:{i}', linestyle='--')
+    # plt.plot(range(len(o_motor_angle[:, i])), o_motor_angle[:, i], label=f'oma:{i}', linestyle='-')
+    plt.plot(range(0, len(o_motor_angle_offset[:, i]) * 2, 2), o_motor_angle_offset[:, i], label=f'oma_offset:{i}', linestyle=':')
+    plt.legend()
+# plt.savefig('result/compare_pace_with_o_motor_angle.png', dpi=300)
+plt.show()   

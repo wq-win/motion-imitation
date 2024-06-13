@@ -75,8 +75,12 @@ def test(model, env, num_episodes=None):
     while i < EPISODE * collect_nums:
         i += 1
         a, _ = model.predict(o, deterministic=True)
+        print(a)
         o, r, done, info = env.step(a)
         oa = o[12:24]
+        oa[np.array([1, 4, 7, 10])] -= 0.67
+        oa[np.array([2, 5, 8, 11])] -= -1.25
+        print(oa,'\n')
         oma = o[48:60]
         oa_list.append(oa)
         oma_list.append(oma)
@@ -86,15 +90,15 @@ def test(model, env, num_episodes=None):
             print(f"eposide: {i // EPISODE + 1} / {collect_nums}")
     env.close()
     
-    oa_list = np.array(oa_list)
-    oma_list = np.array(oma_list)
-    plt.figure()
-    for i in range(12):
-        plt.subplot(4, 3, i+1)
-        plt.plot(range(len(oa_list[:, i]),), oa_list[:, i], label=f'oa:{i}', linestyle='--')
-        plt.plot(range(len(oma_list[:, i])), oma_list[:, i], label=f'oma:{i}', linestyle='-')
-        plt.legend()
-    plt.show()   
+    # oa_list = np.array(oa_list)
+    # oma_list = np.array(oma_list)
+    # plt.figure()
+    # for i in range(12):
+    #     plt.subplot(4, 3, i+1)
+    #     plt.plot(range(len(oa_list[:, i]),), oa_list[:, i], label=f'oa:{i}', linestyle='--')
+    #     plt.plot(range(len(oma_list[:, i])), oma_list[:, i], label=f'oma:{i}', linestyle='-')
+    #     plt.legend()
+    # plt.show()   
     return
 
 def main():
