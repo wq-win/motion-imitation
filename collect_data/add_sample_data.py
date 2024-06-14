@@ -128,7 +128,7 @@ def trajactory_ploter(start, end, x=0, y=1, z=2, u=0, v=1, w=2):
     V = end[:, v]
     W = end[:, w]
 
-    ax.quiver(X, Y, Z, U, V, W, normalize=True, length=0.04)
+    ax.quiver(X, Y, Z, U, V, W, normalize=False, length=0.8)
     ax.set_xlabel('X-axis')
     ax.set_ylabel('Y-axis')
     ax.set_zlabel('Z-axis')
@@ -144,9 +144,9 @@ if __name__ == '__main__':
             input_list.append(point)
             v_direction, distances = calculate_point_vertical_direction(point)
             h_direction = calculate_point_horizontal_direction(distances)
-            direction = v_direction + h_direction
+            # direction = v_direction + h_direction
             # direction = v_direction
-            # direction = h_direction
+            direction = h_direction
             displacement, point = repulse(point, direction, distances)
             output_list.append(displacement)
 

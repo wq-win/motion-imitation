@@ -144,7 +144,7 @@ def generate_data_repulse(data, initial_times, iteration_num, timestep=1 / 30):
         goal_joint_angle = np.vstack((joint_angle[1:, :], joint_angle[:1, :]))
         # repulsed_joint_angle = repulsed_joint_angle + goal_joint_displacements
         # point_displacements = point_displacements + goal_joint_displacements
-        goal_joint_velocity = -point_displacements/timestep
+        goal_joint_velocity = point_displacements/timestep
         # goal_joint_velocity = 1./point_displacements
         input_list.append(np.hstack((imu_euler_noised_quat, repulsed_joint_angle)))
         label_list.append(goal_joint_velocity)
@@ -185,7 +185,7 @@ def trjactory_ploter(data):
     v = data["label"][:, 1]
     w = data["label"][:, 2]
 
-    ax.quiver(x, y, z, u, v, w, normalize=False, length=0.04)
+    ax.quiver(x, y, z, u, v, w, normalize=False, length=0.1)
 
     plt.show()
 
