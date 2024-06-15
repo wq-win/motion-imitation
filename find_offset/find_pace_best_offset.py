@@ -51,7 +51,6 @@ pace = [
   [0.68773, 0.00000, 0.43701, 0.50903, 0.51581, 0.49242, 0.48203, -0.12785, 0.09815, -0.95073, -0.26299, 0.10340, -1.12756, -0.23415, 0.13683, -0.78085, -0.07723, 0.11886, -1.01564]
 ]
 
-
 ENABLE_ENV_RANDOMIZER = True
 motion_file = "motion_imitation/data/motions/dog_pace.txt"
 num_procs = MPI.COMM_WORLD.Get_size()
@@ -59,9 +58,7 @@ mode = "test"
 enable_env_rand = ENABLE_ENV_RANDOMIZER and (mode != "test")
 visualize = True
 
-EPISODE = 100
-
-def main(para):   
+def main():   
     env = env_builder.build_imitation_env(motion_files=[motion_file],
                                             num_parallel_envs=num_procs,
                                             mode=mode,
@@ -69,40 +66,29 @@ def main(para):
                                             enable_rendering=visualize)
     pace_array = np.array(pace)
     p_ma = pace_array[:, 7:]
+    
+    # pma to oma
     p_ma[:, np.array([0, 6])] = -p_ma[:, np.array([0, 6])]
-    p_ma[:, np.array([0, 3, 6, 9])] = -p_ma[:, np.array([0, 3, 6, 9])]
     p_ma[:, np.array([1, 4, 7, 10])] += 0.6
-    p_ma[:, np.array([1, 4, 7, 10])] -= 0.67
     p_ma[:, np.array([2, 5, 8, 11])] += -0.66
+    
+    # oma to a
+    p_ma[:, np.array([0, 3, 6, 9])] = -p_ma[:, np.array([0, 3, 6, 9])]
+    p_ma[:, np.array([1, 4, 7, 10])] -= 0.67
     p_ma[:, np.array([2, 5, 8, 11])] -= -1.25
+    
     env.reset()
     env.render(mode='rgb_array')
-    sum_step = 0
-    sum_step_list = []
+
     i = 38
-    epi = 0
     while True:
-        i = i % len(pace)
+        i = i % p_ma.shape[0]
         action = p_ma[i]
-        # sum_step += 1
         o, r, d, _ = env.step(action)
         i += 2
         if d:
-            # sum_step_list.append(sum_step)
             env.reset()  
             i = 38          
-            # sum_step = 0
-            # epi += 1
-            # if epi > EPISODE:
-            #     break
-        
     env.close()
-    print(f'para:{para}, step_ave:{sum(sum_step_list) / len(sum_step_list)}, max:{max(sum_step_list)}')
-    return sum(sum_step_list) / len(sum_step_list)
 if __name__ == '__main__':
-    interpreted = np.arange(0.00, 0.42, 0.01)
-    result_list = []
-    for i in range(len(interpreted)):
-        result_list.append(main(para=interpreted[i]))
-        
-    print(interpreted[result_list.index(max(result_list))], max(result_list))
+    main()

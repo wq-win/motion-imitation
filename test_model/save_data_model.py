@@ -28,7 +28,7 @@ def main():
                                             enable_rendering=visualize)
     
     test_model = pretrain_pace_data.Net(12, 12)
-    test_model.load_state_dict(torch.load('pretrain_model/pace_data_model_06_14_11_20_40.pkl', map_location=torch.device('cpu')))
+    test_model.load_state_dict(torch.load('pretrain_model/save_data_model_06_14_11_20_40.pkl', map_location=torch.device('cpu')))
     o = env.reset()
     o = torch.tensor(o, dtype=torch.float32)
     env.render(mode='rgb_array')

@@ -54,6 +54,9 @@ p_motor_angle_v = (p_motor_angle_next - p_motor_angle)
 input_list.append(p_motor_angle)
 output_list.append(p_motor_angle_v)
 
+def sigmoid(x : np.array):
+    return .5 * x
+    # return (1 / (1 + np.exp(-x)) - .5)
 
 def set_axes_equal(ax):
     """
@@ -146,53 +149,17 @@ def trajactory_ploter(start, end, x=0, y=1, z=2, u=0, v=1, w=2):
     plt.show()
     
 if __name__ == '__main__':
-    # for _ in range(5):  
-    #     point = sample_random_point()
-    #     for i in range(20):
-    #         input_list.append(point)
-    #         v_direction, distances = calculate_point_vertical_direction(point)
-    #         h_direction = calculate_point_horizontal_direction(distances)
-    #         direction = v_direction + h_direction
-    #         # direction = v_direction
-    #         # direction = h_direction
-    #         displacement, point = repulse(point, direction, distances)
-    #         output_list.append(displacement)
+    for _ in range(5):  
+        point = sample_random_point()
+        for i in range(20):
+            input_list.append(point)
+            v_direction, distances = calculate_point_vertical_direction(point)
+            v_direction, point = repulse(point, v_direction, distances)
+            h_direction = calculate_point_horizontal_direction(distances)
+            direction = v_direction + h_direction
+            output_list.append(direction)
 
-    # input_list = np.vstack(input_list)
-    # output_list = np.vstack(output_list)
-    
-    
-    test_point = p_motor_angle[10] + 0.001
-    test_point_v = p_motor_angle_v[10] + 0.001
-    input_list.append(test_point)
-    output_list.append(test_point_v)
-    
-    input_list.append(test_point)
-    v_direction, distances = calculate_point_vertical_direction(test_point)
-    h_direction = calculate_point_horizontal_direction(distances)
-    # direction = v_direction + h_direction
-    direction = v_direction
-    # direction = h_direction
-    displacement, point = repulse(test_point, direction, distances)
-    output_list.append(displacement)
-    
-    input_list.append(test_point)
-    v_direction, distances = calculate_point_vertical_direction(test_point)
-    h_direction = calculate_point_horizontal_direction(distances)
-    # direction = v_direction + h_direction
-    # direction = v_direction
-    direction = h_direction
-    displacement, point = repulse(test_point, direction, distances)
-    output_list.append(displacement)
-    
-    input_list.append(test_point)
-    v_direction, distances = calculate_point_vertical_direction(test_point)
-    h_direction = calculate_point_horizontal_direction(distances)
-    direction = v_direction + h_direction
-    # direction = v_direction
-    # direction = h_direction
-    displacement, point = repulse(test_point, direction, distances)
-    output_list.append(displacement)
     input_list = np.vstack(input_list)
     output_list = np.vstack(output_list)
+    
     trajactory_ploter(input_list, output_list,)

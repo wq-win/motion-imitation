@@ -69,36 +69,37 @@ def test(model, env, num_episodes=None):
     else:
       collect_nums = num_episodes
     oa_list = []
-    oma_list = []
+    a_list = []
     o = env.reset()
-    print(f"eposide: {i // EPISODE + 1} / {collect_nums}")
+    print(f"eposide: {i // EPISODE + 1} / {collect_nums + 1}")
     while i < EPISODE * collect_nums:
         i += 1
         a, _ = model.predict(o, deterministic=True)
-        print(a)
+        # print(a)
         o, r, done, info = env.step(a)
         oa = o[12:24]
         oa[np.array([1, 4, 7, 10])] -= 0.67
         oa[np.array([2, 5, 8, 11])] -= -1.25
-        print(oa,'\n')
-        oma = o[48:60]
+        # print(oa,'\n')
+        # a = o[48:60]
         oa_list.append(oa)
-        oma_list.append(oma)
+        a_list.append(a)
         
         if done:
             o = env.reset()
-            print(f"eposide: {i // EPISODE + 1} / {collect_nums}")
+            print(f"eposide: {i // EPISODE + 1} / {collect_nums + 1}")
     env.close()
     
-    # oa_list = np.array(oa_list)
-    # oma_list = np.array(oma_list)
-    # plt.figure()
-    # for i in range(12):
-    #     plt.subplot(4, 3, i+1)
-    #     plt.plot(range(len(oa_list[:, i]),), oa_list[:, i], label=f'oa:{i}', linestyle='--')
-    #     plt.plot(range(len(oma_list[:, i])), oma_list[:, i], label=f'oma:{i}', linestyle='-')
-    #     plt.legend()
-    # plt.show()   
+    oa_list = np.array(oa_list)
+    a_list = np.array(a_list)
+    plt.figure()
+    for i in range(12):
+        plt.subplot(4, 3, i+1)
+        plt.plot(range(len(oa_list[:, i]),), oa_list[:, i], label=f'oa:{i}', linestyle='-')
+        plt.plot(range(len(a_list[:, i])), a_list[:, i], label=f'a:{i}', linestyle='--')
+        plt.legend()
+    plt.savefig('result/compare/a_oa.png', dpi=300)    
+    plt.show()   
     return
 
 def main():

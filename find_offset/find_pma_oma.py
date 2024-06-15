@@ -62,7 +62,6 @@ o_motor_angle = o[OFF_SET + OFF_SET_INREGULAR : OFF_SET + OFF_SET_INREGULAR + 39
 o_motor_angle_offset = o[OFF_SET + OFF_SET_INREGULAR : OFF_SET + OFF_SET_INREGULAR + 39*2, 48:60]
 o_motor_angle_offset[:, np.array([0, 6])] = -o_motor_angle_offset[:, np.array([0, 6])]
 o_motor_angle_offset[:, np.array([1, 4, 7, 10])] -= 0.6
-# o_motor_angle[:, np.array([2, 5, 8, 11])] -= -1.25
 o_motor_angle_offset[:, np.array([2, 5, 8, 11])] -= -0.66
 o_motor_angle_offset_next = np.vstack((o_motor_angle_offset[1:, :], o_motor_angle_offset[:1, :]))
 o_motor_angle_offset_v = o_motor_angle_offset_next - o_motor_angle_offset
@@ -121,5 +120,5 @@ for i in range(12):
     # plt.plot(range(len(o_motor_angle[:, i])), o_motor_angle[:, i], label=f'oma:{i}', linestyle='-')
     plt.plot(range(0, len(o_motor_angle_offset[:, i]) * 2, 2), o_motor_angle_offset[:, i], label=f'oma_offset:{i}', linestyle=':')
     plt.legend()
-# plt.savefig('result/compare_pace_with_o_motor_angle.png', dpi=300)
+plt.savefig('result/compare/pma_oma.png', dpi=300)
 plt.show()   

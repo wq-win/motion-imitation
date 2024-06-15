@@ -58,7 +58,6 @@ p_motor_angle_next = np.vstack((p_motor_angle[2:, :], p_motor_angle[:2, :]))
 p_motor_angle_v = (p_motor_angle_next - p_motor_angle)
 input_list.append(p_motor_angle)
 output_list.append(p_motor_angle_v)
-
   
 def sample_random_point():
     # point = np.random.uniform(-np.pi, np.pi, size=12)
@@ -107,7 +106,7 @@ if __name__ == '__main__':
     input_list = np.vstack(input_list)
     output_list = np.vstack(output_list)
     allresult = {'input': input_list, 'output': output_list}
-    file_path = f'dataset/add_pace_data_{POINT_NUMS}_{ITER_TIMES}.pkl'
+    file_path = f'dataset/save_data_{POINT_NUMS}_{ITER_TIMES}.pkl'
     directory = os.path.dirname(file_path)
     if not os.path.exists(directory):
         os.makedirs(directory)

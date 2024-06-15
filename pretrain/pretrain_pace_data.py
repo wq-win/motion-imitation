@@ -31,7 +31,7 @@ class Net(nn.Module):
 if __name__ == "__main__":
     print(DEVICE)
     # update the data path
-    with open('dataset/add_pace_data_3000_10.pkl', 'rb') as f:
+    with open('dataset/save_data_3000_10.pkl', 'rb') as f:
             allresult = pickle.load(f)
 
     input = np.array(allresult['input'])
@@ -76,9 +76,9 @@ if __name__ == "__main__":
                     epoch_loss = 0.0
 
     plt.plot(range(len(losses_list)), losses_list)
-    plt.savefig(f'result/loss/pace_data_loss_{NOWTIME}.png', dpi=300)
+    plt.savefig(f'result/loss/save_data_loss_{NOWTIME}.png', dpi=300)
     plt.show()
-    file_path = f"pretrain_model/pace_data_model_{NOWTIME}.pkl"
+    file_path = f"pretrain_model/save_data_model_{NOWTIME}.pkl"
     directory = os.path.dirname(file_path)
     if not os.path.exists(directory):
         os.makedirs(directory)

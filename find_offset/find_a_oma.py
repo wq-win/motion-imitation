@@ -30,17 +30,17 @@ def main():
                                             enable_randomizer=enable_env_rand,
                                             enable_rendering=visualize)
     
-    ma = o[:, 48:60]
+    oma = o[:, 48:60]
     env.reset()
     env.render(mode='rgb_array')
     # print(len(a), len(a[0]))  
 
     i = 0
     while True:
-        ma[i][np.array([0, 3, 6, 9])] = -ma[i][np.array([0, 3, 6, 9])]
-        ma[i][np.array([1, 4, 7, 10])] -= 0.67
-        ma[i][np.array([2, 5, 8, 11])] -= -1.25  # -.66
-        o, r, d, _ = env.step(ma[i])
+        oma[i][np.array([0, 3, 6, 9])] = -oma[i][np.array([0, 3, 6, 9])]
+        oma[i][np.array([1, 4, 7, 10])] -= 0.67
+        oma[i][np.array([2, 5, 8, 11])] -= -1.25  # -.66
+        o, r, d, _ = env.step(oma[i])
         # print(ma[i])
         # if d:
         #     print(i)
