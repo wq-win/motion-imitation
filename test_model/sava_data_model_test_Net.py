@@ -1,15 +1,28 @@
-import os
 import pickle
 from matplotlib import pyplot as plt
 import numpy as np
+import torch
+from motion_imitation.envs import env_builder
+from mpi4py import MPI
+import os
+import inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+print(parentdir)
+os.sys.path.insert(0, parentdir)
+from pretrain import pretrain_save_data_V1
 
-
-CONSTAN_FACTOR = 100
-POINT_NUMS = 3000
-ITER_TIMES = 10
 
 input_list = []
 output_list = []
+
+TIMESTEP = 1 / 30
+ENABLE_ENV_RANDOMIZER = True
+motion_file = "motion_imitation/data/motions/dog_pace.txt"
+num_procs = MPI.COMM_WORLD.Get_size()
+mode = "test"
+enable_env_rand = ENABLE_ENV_RANDOMIZER and (mode != "test")
+visualize = True
 
 pace = [
   [0.00000, 0.00000, 0.43701, 0.49491, 0.53393, 0.49912, 0.46997, -0.12721, 0.07675, -0.95545, -0.25301, 0.18682, -1.14403, -0.19362, 0.14030, -0.77823, -0.09528, 0.05437, -0.97596],
@@ -54,61 +67,87 @@ pace = [
 ]
 pace_array = np.array(pace)
 p_motor_angle = pace_array[:, 7:]
-p_motor_angle_next = np.vstack((p_motor_angle[2:, :], p_motor_angle[:2, :]))
+p_motor_angle_next = np.vstack((p_motor_angle[1:, :], p_motor_angle[:1, :]))
 p_motor_angle_v = (p_motor_angle_next - p_motor_angle)
 input_list.append(p_motor_angle)
 output_list.append(p_motor_angle_v)
-  
-def sample_random_point():
-    # point = np.random.uniform(-np.pi, np.pi, size=12)
-    point = []
-    for i in range(p_motor_angle.shape[1]):
-        dim_min, dim_max = min(p_motor_angle[:, i]), max(p_motor_angle[:, i])
-        point.append(np.random.uniform(2 * dim_min - dim_max, 2 * dim_max - dim_min))
-    return point
 
-def calculate_point_vertical_direction(point):
-    displacement = p_motor_angle - point
-    distances = np.linalg.norm(displacement, axis=1, keepdims=True)
-    forces = displacement / (distances ** 2)
-    force = np.sum(forces, axis=0) / forces.shape[0]
-    force_mag = np.linalg.norm(force)
-    direction = force / force_mag
-    return direction, distances
+def set_axes_equal(ax):
+    """
+    Make axes of 3D plot have equal scale so that spheres appear as spheres,
+    cubes as cubes, etc.
 
-def calculate_point_horizontal_direction(distances):
-    distance = np.sum(1 / (distances ** 2), axis=0)
-    forces = p_motor_angle_v / (distances ** 2)
-    force = np.sum(forces, axis=0)
-    direction = force / distance
-    return direction
+    Input
+      ax: a matplotlib axis, e.g., as output from plt.gca().
+    """
+
+    x_limits = ax.get_xlim3d()
+    y_limits = ax.get_ylim3d()
+    z_limits = ax.get_zlim3d()
+
+    x_range = abs(x_limits[1] - x_limits[0])
+    x_middle = np.mean(x_limits)
+    y_range = abs(y_limits[1] - y_limits[0])
+    y_middle = np.mean(y_limits)
+    z_range = abs(z_limits[1] - z_limits[0])
+    z_middle = np.mean(z_limits)
+
+    # The plot bounding box is a sphere in the sense of the infinity
+    # norm, hence I call half the max range the plot radius.
+    plot_radius = 0.5*max([x_range, y_range, z_range])
+
+    ax.set_xlim3d([x_middle - plot_radius, x_middle + plot_radius])
+    ax.set_ylim3d([y_middle - plot_radius, y_middle + plot_radius])
+    ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
+   
+def trajactory_ploter(start, end, x=0, y=1, z=2, u=0, v=1, w=2):
+    ax = plt.figure().add_subplot(projection='3d')
+
+    # Make the grid
+    X = start[:, x]
+    Y = start[:, y]
+    Z = start[:, z]
+
+    # Make the direction data for the arrows
+    U = end[:, u]
+    V = end[:, v]
+    W = end[:, w]
+
+    ax.quiver(X, Y, Z, U, V, W, normalize=False, length=1)
+    ax.set_xlabel('X-axis')
+    ax.set_ylabel('Y-axis')
+    ax.set_zlabel('Z-axis')
+    ax.set_title('12 dimension')
+    set_axes_equal(ax)
     
-def repulse(point, direction, distances):
-    speed = 1 / np.sum(1 / distances) / distances.shape[0] * CONSTAN_FACTOR
-    displacement = direction * speed 
-    new_point = point + displacement
-    return displacement, new_point
+    plt.show()
 
+
+env = env_builder.build_imitation_env(motion_files=[motion_file],
+                                        num_parallel_envs=num_procs,
+                                        mode=mode,
+                                        enable_randomizer=enable_env_rand,
+                                        enable_rendering=visualize)
+
+test_model = pretrain_save_data_V1.Net(12, 12)
+test_model.load_state_dict(torch.load('pretrain_model/save_data_V5_model_06_15_22_02_12.pkl', map_location=torch.device('cpu')))
+o = env.reset()
+env.render(mode='rgb_array')
+oma = o[48:60]
+for i in range(2):
+  oma = np.random.uniform(-np.pi, np.pi, size=12)
+  for _ in range(10000):
+      input_list.append(oma)
+      oma = torch.tensor(oma, dtype=torch.float32)
+      ma_v = test_model(oma)
+      ma_v = ma_v.detach().numpy()
+      output_list.append(ma_v * TIMESTEP *10)
+      oma += ma_v * TIMESTEP * 10
     
-if __name__ == '__main__':
-    for _ in range(POINT_NUMS):  
-        point = sample_random_point()
-        for i in range(ITER_TIMES):
-            input_list.append(point)
-            v_direction, distances = calculate_point_vertical_direction(point)
-            h_direction = calculate_point_horizontal_direction(distances)
-            direction = v_direction + h_direction
-            # direction = v_direction
-            # direction = h_direction
-            displacement, point = repulse(point, direction, distances)
-            output_list.append(displacement)
+print(oma)
+env.close()
 
-    input_list = np.vstack(input_list)
-    output_list = np.vstack(output_list)
-    allresult = {'input': input_list, 'output': output_list}
-    file_path = f'dataset/save_data_{POINT_NUMS}_{ITER_TIMES}.pkl'
-    directory = os.path.dirname(file_path)
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-    with open(file_path, 'wb') as f:
-        pickle.dump(allresult, f)
+input_list = np.vstack(input_list)
+output_list = np.vstack(output_list)
+trajactory_ploter(input_list, output_list,)
+

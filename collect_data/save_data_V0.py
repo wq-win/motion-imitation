@@ -1,8 +1,13 @@
+import os
+import pickle
 from matplotlib import pyplot as plt
 import numpy as np
 
 
 CONSTAN_FACTOR = 100
+POINT_NUMS = 3000
+ITER_TIMES = 10
+
 input_list = []
 output_list = []
 
@@ -49,43 +54,11 @@ pace = [
 ]
 pace_array = np.array(pace)
 p_motor_angle = pace_array[:, 7:]
-p_motor_angle_next = np.vstack((p_motor_angle[1:, :], p_motor_angle[:1, :]))
+p_motor_angle_next = np.vstack((p_motor_angle[2:, :], p_motor_angle[:2, :]))
 p_motor_angle_v = (p_motor_angle_next - p_motor_angle)
 input_list.append(p_motor_angle)
 output_list.append(p_motor_angle_v)
-
-def sigmoid(x : np.array):
-    return .5 * x
-    # return (1 / (1 + np.exp(-x)) - .5)
-
-def set_axes_equal(ax):
-    """
-    Make axes of 3D plot have equal scale so that spheres appear as spheres,
-    cubes as cubes, etc.
-
-    Input
-      ax: a matplotlib axis, e.g., as output from plt.gca().
-    """
-
-    x_limits = ax.get_xlim3d()
-    y_limits = ax.get_ylim3d()
-    z_limits = ax.get_zlim3d()
-
-    x_range = abs(x_limits[1] - x_limits[0])
-    x_middle = np.mean(x_limits)
-    y_range = abs(y_limits[1] - y_limits[0])
-    y_middle = np.mean(y_limits)
-    z_range = abs(z_limits[1] - z_limits[0])
-    z_middle = np.mean(z_limits)
-
-    # The plot bounding box is a sphere in the sense of the infinity
-    # norm, hence I call half the max range the plot radius.
-    plot_radius = 0.5*max([x_range, y_range, z_range])
-
-    ax.set_xlim3d([x_middle - plot_radius, x_middle + plot_radius])
-    ax.set_ylim3d([y_middle - plot_radius, y_middle + plot_radius])
-    ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
-    
+  
 def sample_random_point():
     # point = np.random.uniform(-np.pi, np.pi, size=12)
     point = []
@@ -126,42 +99,26 @@ def repulse(point, direction, distances):
     new_point = point + displacement
     return displacement, new_point
 
-def trajactory_ploter(start, end, x=0, y=1, z=2, u=0, v=1, w=2):
-    ax = plt.figure().add_subplot(projection='3d')
-
-    # Make the grid
-    X = start[:, x]
-    Y = start[:, y]
-    Z = start[:, z]
-
-    # Make the direction data for the arrows
-    U = end[:, u]
-    V = end[:, v]
-    W = end[:, w]
-
-    ax.quiver(X, Y, Z, U, V, W, normalize=False, length=1)
-    ax.set_xlabel('X-axis')
-    ax.set_ylabel('Y-axis')
-    ax.set_zlabel('Z-axis')
-    ax.set_title('12 dimension')
-    set_axes_equal(ax)
-    
-    plt.show()
     
 if __name__ == '__main__':
-    for _ in range(1000):  
+    for _ in range(POINT_NUMS):  
         point = sample_random_point()
-        for i in range(10):
+        for i in range(ITER_TIMES):
             input_list.append(point)
             v_direction, distances = calculate_point_vertical_direction(point)
-            v_direction, point = repulse(point, v_direction, distances)
-           
             h_direction = calculate_point_horizontal_direction(distances)
-            point += h_direction
             direction = v_direction + h_direction
-            output_list.append(direction)
+            # direction = v_direction
+            # direction = h_direction
+            displacement, point = repulse(point, direction, distances)
+            output_list.append(displacement)
 
     input_list = np.vstack(input_list)
     output_list = np.vstack(output_list)
-    
-    trajactory_ploter(input_list, output_list,)
+    allresult = {'input': input_list, 'output': output_list}
+    file_path = f'dataset/save_data_{POINT_NUMS}_{ITER_TIMES}.pkl'
+    directory = os.path.dirname(file_path)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    with open(file_path, 'wb') as f:
+        pickle.dump(allresult, f)

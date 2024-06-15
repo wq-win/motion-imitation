@@ -143,22 +143,33 @@ def trajactory_ploter(start, end, x=0, y=1, z=2, u=0, v=1, w=2):
     ax.set_xlabel('X-axis')
     ax.set_ylabel('Y-axis')
     ax.set_zlabel('Z-axis')
-    ax.set_title('3D Vector Field')
+    ax.set_title('3 dimensional')
     set_axes_equal(ax)
     
     plt.show()
     
 if __name__ == '__main__':
-    for _ in range(5):  
-        point = sample_random_point()
-        for i in range(20):
-            input_list.append(point)
-            v_direction, distances = calculate_point_vertical_direction(point)
-            v_direction, point = repulse(point, v_direction, distances)
-            h_direction = calculate_point_horizontal_direction(distances)
-            direction = v_direction + h_direction
-            output_list.append(direction)
-
+    # for _ in range(10):  
+    #     point = sample_random_point()
+    #     for i in range(20):
+    #         input_list.append(point)
+    #         v_direction, distances = calculate_point_vertical_direction(point)
+    #         v_direction, point = repulse(point, v_direction, distances)
+            
+    #         h_direction = calculate_point_horizontal_direction(distances)
+    #         point += h_direction
+    #         direction = v_direction + h_direction
+    #         output_list.append(direction)
+    test_point = np.array([-np.pi]*3)
+    for i in range(100):
+        input_list.append(test_point)
+        v_direction, distances = calculate_point_vertical_direction(test_point)
+        v_direction, test_point = repulse(test_point, v_direction, distances)
+        
+        h_direction = calculate_point_horizontal_direction(distances)
+        test_point += h_direction
+        direction = v_direction + h_direction
+        output_list.append(direction)
     input_list = np.vstack(input_list)
     output_list = np.vstack(output_list)
     

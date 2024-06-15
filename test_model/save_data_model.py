@@ -9,9 +9,9 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(currentdir)
 print(parentdir)
 os.sys.path.insert(0, parentdir)
-from pretrain import pretrain_pace_data
+from pretrain import pretrain_save_data_V1
 
-
+TIMESTEP = 1 / 30
 ENABLE_ENV_RANDOMIZER = True
 motion_file = "motion_imitation/data/motions/dog_pace.txt"
 num_procs = MPI.COMM_WORLD.Get_size()
@@ -27,8 +27,8 @@ def main():
                                             enable_randomizer=enable_env_rand,
                                             enable_rendering=visualize)
     
-    test_model = pretrain_pace_data.Net(12, 12)
-    test_model.load_state_dict(torch.load('pretrain_model/save_data_model_06_14_11_20_40.pkl', map_location=torch.device('cpu')))
+    test_model = pretrain_save_data_V1.Net(12, 12)
+    test_model.load_state_dict(torch.load('pretrain_model/save_data_V5_model_06_15_22_02_12.pkl', map_location=torch.device('cpu')))
     o = env.reset()
     o = torch.tensor(o, dtype=torch.float32)
     env.render(mode='rgb_array')
@@ -36,7 +36,7 @@ def main():
     i = 0
     while True: 
         ma_v = test_model(o[48:60])
-        action = o[48:60] + ma_v
+        action = o[48:60] + ma_v * TIMESTEP * 10
         action[np.array([0, 3, 6, 9])] = -action[np.array([0, 3, 6, 9])]
         action[np.array([1, 4, 7, 10])] -= 0.67 
         action[np.array([2, 5, 8, 11])] -= -1.25

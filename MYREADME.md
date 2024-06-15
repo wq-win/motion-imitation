@@ -1,5 +1,7 @@
-collect_data/save_data.py
+collect_data/save_data_V1.py    # 采集数据
 
-pretrain/pretrain_pace_data.py
+pretrain/pretrain_save_data_V1.py # 预训练
 
-test/test_pace_data.py
+test_model/sava_data_model_test_Net.py # 模型Net测试
+
+test_model/save_data_model.py   # 模型测试
