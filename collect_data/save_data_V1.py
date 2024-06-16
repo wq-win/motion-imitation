@@ -1,5 +1,6 @@
 import os
 import pickle
+from matplotlib import pyplot as plt
 import numpy as np
 
 
@@ -61,6 +62,33 @@ p_motor_angle_v_tile = np.tile(p_motor_angle_v, (int(POINT_NUMS / 4), 1))
 input_list.append(p_motor_angle_tile)
 output_list.append(p_motor_angle_v_tile)  
 
+def set_axes_equal(ax):
+    """
+    Make axes of 3D plot have equal scale so that spheres appear as spheres,
+    cubes as cubes, etc.
+
+    Input
+      ax: a matplotlib axis, e.g., as output from plt.gca().
+    """
+
+    x_limits = ax.get_xlim3d()
+    y_limits = ax.get_ylim3d()
+    z_limits = ax.get_zlim3d()
+
+    x_range = abs(x_limits[1] - x_limits[0])
+    x_middle = np.mean(x_limits)
+    y_range = abs(y_limits[1] - y_limits[0])
+    y_middle = np.mean(y_limits)
+    z_range = abs(z_limits[1] - z_limits[0])
+    z_middle = np.mean(z_limits)
+
+    # The plot bounding box is a sphere in the sense of the infinity
+    # norm, hence I call half the max range the plot radius.
+    plot_radius = 0.5*max([x_range, y_range, z_range])
+
+    ax.set_xlim3d([x_middle - plot_radius, x_middle + plot_radius])
+    ax.set_ylim3d([y_middle - plot_radius, y_middle + plot_radius])
+    ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
 def sample_random_point():
     """
     min=a,max=b, 随机生成一个在[a-(b-a),b+(b-a)]内的12dim随机数
@@ -107,7 +135,28 @@ def repulse(point, direction, distances):
     new_point = point + displacement
     return displacement, new_point
 
+def trajactory_ploter(start, end, x=0, y=1, z=2, u=0, v=1, w=2):
+    ax = plt.figure().add_subplot(projection='3d')
+
+    # Make the grid
+    X = start[:, x]
+    Y = start[:, y]
+    Z = start[:, z]
+
+    # Make the direction data for the arrows
+    U = end[:, u]
+    V = end[:, v]
+    W = end[:, w]
+
+    ax.quiver(X, Y, Z, U, V, W, normalize=False, length=1)
+    ax.set_xlabel('X-axis')
+    ax.set_ylabel('Y-axis')
+    ax.set_zlabel('Z-axis')
+    ax.set_title('12 dimension')
+    set_axes_equal(ax)
     
+    plt.show()    
+
 if __name__ == '__main__':
     for _ in range(int(POINT_NUMS / 2)):  
         point = sample_random_point()
@@ -133,6 +182,7 @@ if __name__ == '__main__':
     
     input_list = np.vstack(input_list)
     output_list = np.vstack(output_list)
+    trajactory_ploter(input_list, output_list,)
     allresult = {'input': input_list, 'output': output_list}
     file_path = f'dataset/save_data_V4_{POINT_NUMS}_{ITER_TIMES}.pkl'
     directory = os.path.dirname(file_path)
