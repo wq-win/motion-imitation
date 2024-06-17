@@ -130,19 +130,19 @@ env = env_builder.build_imitation_env(motion_files=[motion_file],
                                         enable_rendering=visualize)
 
 test_model = pretrain_save_data_V1.Net(12, 12)
-test_model.load_state_dict(torch.load('pretrain_model/save_data_V5_model_06_15_22_02_12.pkl', map_location=torch.device('cpu')))
+test_model.load_state_dict(torch.load('pretrain_model/save_data_V5_model_06_17_13_17_54.pkl', map_location=torch.device('cpu')))
 o = env.reset()
 env.render(mode='rgb_array')
 oma = o[48:60]
-for i in range(2):
+for i in range(10):
   oma = np.random.uniform(-np.pi, np.pi, size=12)
-  for _ in range(10000):
+  for _ in range(200):
       input_list.append(oma)
       oma = torch.tensor(oma, dtype=torch.float32)
       ma_v = test_model(oma)
       ma_v = ma_v.detach().numpy()
-      output_list.append(ma_v * TIMESTEP *10)
-      oma += ma_v * TIMESTEP * 10
+      output_list.append(ma_v * TIMESTEP)
+      oma += ma_v * TIMESTEP 
     
 print(oma)
 env.close()

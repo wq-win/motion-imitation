@@ -61,7 +61,11 @@ if __name__ == "__main__":
     model = Net(input_dim, output_dim)
     model.to(DEVICE)
     criterion = nn.MSELoss()
-
+    nweights = 0
+    for name, weights in model.named_parameters():
+        if 'bias' not in name:
+            nweights = nweights + weights.numel()
+    print(f'Total number of weights in the model = {nweights}')
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     model.train()
     for ep in range(episode):
@@ -82,6 +86,7 @@ if __name__ == "__main__":
             print(f"Episode: {ep + 1}, Epoch: {e + 1}, Loss: {average_loss}")
 
     plt.plot(range(len(losses_list)), losses_list)
+    plt.title(f'weights_nums:{nweights}')
     plt.savefig(f'result/loss/save_data_V5_loss_{NOWTIME}.png', dpi=300)
     plt.show()
     file_path = f"pretrain_model/save_data_V5_model_{NOWTIME}.pkl"

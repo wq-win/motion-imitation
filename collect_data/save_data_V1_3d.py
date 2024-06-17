@@ -3,13 +3,15 @@ import os
 import pickle
 from matplotlib import pyplot as plt
 import numpy as np
+import tqdm
 
 np.random.seed(0)
-CONSTAN_FACTOR = 100
-POINT_NUMS = 10
-ITER_TIMES = 1000
+CONSTAN_FACTOR = 600
+SAMPLE_POINT_NUMS = 10
+SAMPLE_POINT_NUMS = int(SAMPLE_POINT_NUMS)
+ITER_TIMES = 50
 TIMESTEP = 1 / 30
-num_joints = 3
+JOINT_NUMS = 3
 JOINT_INDEX_START = 7
 input_list = []
 output_list = []
@@ -56,15 +58,16 @@ pace = [
   [0.67005, 0.00126, 0.43824, 0.51299, 0.51174, 0.49342, 0.48113, -0.12047, 0.05387, -0.95210, -0.21892, 0.23998, -1.07604, -0.22485, 0.10828, -0.79239, -0.08403, 0.22582, -1.04134],
   [0.68773, 0.00000, 0.43701, 0.50903, 0.51581, 0.49242, 0.48203, -0.12785, 0.09815, -0.95073, -0.26299, 0.10340, -1.12756, -0.23415, 0.13683, -0.78085, -0.07723, 0.11886, -1.01564]
 ]
+pace_len = len(pace)
 pace_array = np.array(pace)
-p_motor_angle = pace_array[:, JOINT_INDEX_START:JOINT_INDEX_START+num_joints]
+p_motor_angle = pace_array[:, JOINT_INDEX_START:JOINT_INDEX_START+JOINT_NUMS]
 p_motor_angle_next = np.vstack((p_motor_angle[1:, :], p_motor_angle[:1, :]))
 p_motor_angle_v = (p_motor_angle_next - p_motor_angle) / TIMESTEP
-p_motor_angle_v_rate = np.linalg.norm(p_motor_angle_v, axis=1, keepdims=1)
-mass_weight = p_motor_angle_v_rate/np.max(p_motor_angle_v_rate)
+p_motor_angle_v_norm = np.linalg.norm(p_motor_angle_v, axis=1, keepdims=1)
+mass_weight = p_motor_angle_v_norm / np.max(p_motor_angle_v_norm)
 input_list.append(p_motor_angle)
 output_list.append(p_motor_angle_v)
-color_list.append(np.zeros((len(pace), 3)))
+color_list.append(np.zeros((pace_len, 3)))
 
 # p_motor_angle_tile = np.tile(p_motor_angle, (int(POINT_NUMS / 4), 1))
 # p_motor_angle_v_tile = np.tile(p_motor_angle_v, (int(POINT_NUMS / 4), 1))
@@ -104,52 +107,57 @@ def sample_random_point():
     min=a,max=b, 随机生成一个在[a-(b-a),b+(b-a)]内的12dim随机数
     """
     point = []
-    for i in range(p_motor_angle.shape[1]):
+    for i in range(JOINT_NUMS):
         dim_min, dim_max = min(p_motor_angle[:, i]), max(p_motor_angle[:, i])
         point.append(np.random.uniform(2 * dim_min - dim_max, 2 * dim_max - dim_min))
     return point
 
 def sample_random_point_pi():
-    point = np.random.uniform(-np.pi, np.pi, size=num_joints)
+    point = np.random.uniform(-np.pi, np.pi, size=JOINT_NUMS)
     return point
 
 def calculate_point_normal_direction(point, mass_weight):
-    displacement = p_motor_angle - point
-    distances = np.linalg.norm(displacement, axis=1, keepdims=True)
-    forces = mass_weight * displacement / (distances ** 2)
-    force = np.sum(forces, axis=0) / forces.shape[0]
-    force_mag = np.linalg.norm(force)
-    direction = force / force_mag
-    return direction, distances
+    point2ring_displacement = p_motor_angle - point
+    point2ring_distances = np.linalg.norm(point2ring_displacement, axis=1, keepdims=True)
+    point2ring_nearest_index = np.argmin(point2ring_distances)
+    ring_nearest_index_v = p_motor_angle_v[point2ring_nearest_index]
+    ring_nearest_index_v_norm = np.linalg.norm(ring_nearest_index_v)
+    if point2ring_distances[point2ring_nearest_index] < p_motor_angle_v_norm[point2ring_nearest_index] * TIMESTEP * 2:
+        point_on_ring_projection = np.dot(point2ring_displacement[point2ring_nearest_index], ring_nearest_index_v) / ring_nearest_index_v_norm
+        point2ring_normal_vector = point2ring_displacement[point2ring_nearest_index] - point_on_ring_projection * ring_nearest_index_v / ring_nearest_index_v_norm
+        testa = np.dot(point2ring_normal_vector, ring_nearest_index_v)
+        assert np.abs(testa) < 0.01, 'not normal %f'%(testa)
+        direction = point2ring_normal_vector / np.linalg.norm(point2ring_normal_vector)
+    else:
+        forces = mass_weight * point2ring_displacement / (point2ring_distances ** 2)
+        force = np.sum(forces, axis=0) / forces.shape[0]
+        direction = force / np.linalg.norm(force)
+    return direction, point2ring_distances
 
-def calculate_point_tangent_velocity(distances, decay=200):  #200
-    for i, vaule in enumerate(distances):
-        if vaule == 0:
+def calculate_point_tangent_velocity(distances, decay=.01):  #200
+    for i, distance in enumerate(distances):
+        if distance < 1e-6:  
             return p_motor_angle_v[i]
-    if any(distances - distances[0]) == 0:
-        for i, vaule in enumerate(distances):
-            if vaule == np.inf:
-                return 0
-        return np.sum(p_motor_angle_v) / len(p_motor_angle_v) / distances[0]
 
     # distance = np.sum(1 / (distances ), axis=0)
     # forces = p_motor_angle_v / (distances) / (distances**2 + 1)
     # force = np.sum(forces, axis=0)
     # velocity = force / distance
 
-    forces = p_motor_angle_v / (distances) / (decay*distances + 1)
+    forces = p_motor_angle_v / (distances**2) / (decay * distances + 1)
     force = np.sum(forces, axis=0)
-    distance = np.sum(1 / (distances ), axis=0)
+    distance = np.sum(1 / (distances**2 ), axis=0)
     velocity = force / distance
 
     return velocity
     
 def repulse(direction, distances, mass_weight):
-    speed = 1 / np.sum(1/ distances**2*mass_weight) / distances.shape[0] * CONSTAN_FACTOR
+    ring_point_nums = distances.shape[0]
+    speed = 1 / np.sum(1 / distances * mass_weight) / ring_point_nums * CONSTAN_FACTOR
     displacement = direction * speed
     return displacement
 
-def trajactory_ploter(position, arrow, index_range=(0.-1), dim=3, color_array=None, x=0, y=1, z=2, u=0, v=1, w=2):
+def trajactory_ploter(position, arrow, index_range=(0, -1), dim=3, color_array=None, x=0, y=1, z=2, u=0, v=1, w=2):
     ax = plt.figure().add_subplot(projection='3d')
 
     # Make the grid
@@ -163,54 +171,60 @@ def trajactory_ploter(position, arrow, index_range=(0.-1), dim=3, color_array=No
     W = arrow[index_range[0]:index_range[1], w]
 
     if color_array is None:
-        ax.quiver(X, Y, Z, U, V, W, normalize=True, length=0.1)
+        ax.quiver(X, Y, Z, U, V, W, normalize=False, length=TIMESTEP)
     else:
-        ax.quiver(X, Y, Z, U, V, W, color=color_array, normalize=True, length=0.1)
+        ax.quiver(X, Y, Z, U, V, W, color=color_array, normalize=False, length=TIMESTEP)
     ax.set_xlabel('X-axis')
     ax.set_ylabel('Y-axis')
     ax.set_zlabel('Z-axis')
-    ax.set_title('%d dimension'%(dim))
+    ax.set_title(f'{dim} dimension, x={x}, y={y}, z={z}')
     set_axes_equal(ax)
     
     plt.show()    
-
+    
 if __name__ == '__main__':
-    for _ in range(int(POINT_NUMS / 2)):
+    for _ in tqdm.tqdm(range(int(SAMPLE_POINT_NUMS / 2))):
         point = sample_random_point()
         for i in range(ITER_TIMES):
             input_list.append(copy.deepcopy(point))
-            v_direction, distances = calculate_point_normal_direction(point, mass_weight)
-            v_displacement = repulse(v_direction, distances, mass_weight)
-            h_displacement = calculate_point_tangent_velocity(distances)
-            displacement = v_displacement + h_displacement
+            normal_direction, point2ring_distances = calculate_point_normal_direction(point, mass_weight)
+            normal_displacement = repulse(normal_direction, point2ring_distances, mass_weight)
+            tangent_displacement = calculate_point_tangent_velocity(point2ring_distances)
+            displacement = tangent_displacement + normal_displacement  
+            # displacement = normal_displacement
+            # displacement = tangent_displacement
             point += displacement
             output_list.append(displacement)
         color = np.ones((ITER_TIMES, 3))
-        color[:, 1] = np.linspace(1, 0, ITER_TIMES)
-        color[:, 0] = np.linspace(1, 0, ITER_TIMES)
+        color[:, 0] = np.linspace(0.8, 0, ITER_TIMES)  # blue
         color_list.append(color)
 
-    # for _ in range(int(POINT_NUMS / 4)):
+    # for _ in tqdm.tqdm(range(int(SAMPLE_POINT_NUMS / 4))):
     #     point = sample_random_point_pi()
     #     for i in range(ITER_TIMES):
     #         input_list.append(copy.deepcopy(point))
-    #         v_direction, distances = calculate_point_normal_direction(point)
-    #         v_displacement = repulse(v_direction, distances)
-    #         h_displacement = calculate_point_tangent_velocity(distances)
-    #         displacement = v_displacement + h_displacement
+    #         normal_direction, point2ring_distances = calculate_point_normal_direction(point, mass_weight)
+    #         normal_displacement = repulse(normal_direction, point2ring_distances, mass_weight)
+    #         tangent_displacement = calculate_point_tangent_velocity(point2ring_distances)
+    #         displacement = tangent_displacement + normal_displacement  
+    #         displacement = normal_displacement
+    #         displacement = tangent_displacement
     #         point += displacement
     #         output_list.append(displacement)
     #     color = np.ones((ITER_TIMES, 3))
-    #     color[:, 1] = np.linspace(1, 0, ITER_TIMES)
-    #     color[:, 0] = np.linspace(1, 0, ITER_TIMES)
+    #     color[:, 1] = np.linspace(0.8, 0, ITER_TIMES)  # red
     #     color_list.append(color)
-    
+
     input_array = np.vstack(input_list)
     output_array = np.vstack(output_list)
     color_array = np.vstack(color_list)
-    trajactory_ploter(input_array, output_array, index_range=[0, 1000], dim=num_joints, color_array=color_array)
+
+    trajactory_ploter(input_array, output_array, index_range=[0000, 1000], dim=JOINT_NUMS, color_array=color_array, x=0, y=1, z=2, u=0, v=1, w=2)
+    # trajactory_ploter(input_array, output_array, index_range=[0000, 1000], dim=JOINT_NUMS, color_array=color_array, x=3, y=4, z=5, u=3, v=4, w=5)
+    # trajactory_ploter(input_array, output_array, index_range=[0000, 1000], dim=JOINT_NUMS, color_array=color_array, x=6, y=7, z=8, u=6, v=7, w=8)
+    # trajactory_ploter(input_array, output_array, index_range=[0000, 1000], dim=JOINT_NUMS, color_array=color_array, x=9, y=10, z=11, u=9, v=10, w=11)
     allresult = {'input': input_array, 'output': output_array}
-    file_path = f'dataset/save_data_V4_{POINT_NUMS}_{ITER_TIMES}.pkl'
+    file_path = f'dataset/save_data_V4_{SAMPLE_POINT_NUMS}_{ITER_TIMES}.pkl'
     directory = os.path.dirname(file_path)
     if not os.path.exists(directory):
         os.makedirs(directory)
