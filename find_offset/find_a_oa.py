@@ -75,12 +75,12 @@ def test(model, env, num_episodes=None):
     while i < EPISODE * collect_nums:
         i += 1
         a, _ = model.predict(o, deterministic=True)
-        # print(a)
+        print(f'a:{a}')
         o, r, done, info = env.step(a)
         oa = o[12:24]
         oa[np.array([1, 4, 7, 10])] -= 0.67
         oa[np.array([2, 5, 8, 11])] -= -1.25
-        # print(oa,'\n')
+        print(f'oa:{oa}\n')
         # a = o[48:60]
         oa_list.append(oa)
         a_list.append(a)
