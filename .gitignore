@@ -1,3 +1,10 @@
 *.pkl
 *.png
 *.ipynb
+*py[ocd]
+**/__pycache__/**
+*.py[cod]
+/build/*
+*.*.pyc
+.gitignore
+
