@@ -121,7 +121,8 @@ def calculate_point_normal_direction(point, mass_weight):
     point2ring_displacement = p_motor_angle - point
     point2ring_distances = np.linalg.norm(point2ring_displacement, axis=1, keepdims=True)
     # x^(1/6)
-    point2ring_distances = point2ring_distances**(1/6)
+    if JOINT_NUMS == 12:
+        point2ring_distances = point2ring_distances**(1/6)
     point2ring_nearest_index = np.argmin(point2ring_distances)
     ring_nearest_index_v = p_motor_angle_v[point2ring_nearest_index]
     ring_nearest_index_v_norm = np.linalg.norm(ring_nearest_index_v)
