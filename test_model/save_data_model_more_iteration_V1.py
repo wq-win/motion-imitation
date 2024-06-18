@@ -1,3 +1,4 @@
+import copy
 import pickle
 import numpy as np
 import torch
@@ -28,21 +29,46 @@ def main():
                                             enable_rendering=visualize)
     
     test_model = pretrain_save_data_V1.Net(12, 12)
-    test_model.load_state_dict(torch.load('pretrain_model/save_data_V5_model_06_15_22_02_12.pkl', map_location=torch.device('cpu')))
+    test_model.load_state_dict(torch.load('pretrain_model/save_data_V5_model_06_18_15_05_05.pkl', map_location=torch.device('cpu')))
     o = env.reset()
     o = torch.tensor(o, dtype=torch.float32)
     env.render(mode='rgb_array')
+    oma = o[48:60]
+    iter_times = 32
+    for _ in range(iter_times):
+        displacement = test_model(oma)
+        # displacement = 0
+        oma += displacement * TIMESTEP
+
+    oma[np.array([0, 6])] = -oma[np.array([0, 6])]
+    oma[np.array([1, 4, 7, 10])] += 0.6
+    oma[np.array([2, 5, 8, 11])] += -0.66
+
+    oma[np.array([0, 3, 6, 9])] = -oma[np.array([0, 3, 6, 9])]
+    oma[np.array([1, 4, 7, 10])] -= 0.67
+    oma[np.array([2, 5, 8, 11])] -= -1.25
+    action = oma
 
     i = 0
     while True: 
-        ma_v = test_model(o[48:60])
-        action = o[48:60] + ma_v * TIMESTEP * 10
-        action[np.array([0, 3, 6, 9])] = -action[np.array([0, 3, 6, 9])]
-        action[np.array([1, 4, 7, 10])] -= 0.67 
-        action[np.array([2, 5, 8, 11])] -= -1.25
         action = action.detach().numpy()
         o, r, d, _ = env.step(action)
         o = torch.tensor(o, dtype=torch.float32)
+        oma = o[48:60]
+        iter_times = 32
+        for _ in range(iter_times):
+            displacement = test_model(oma)
+            # displacement = 0
+            oma += displacement * TIMESTEP
+
+        oma[np.array([0, 6])] = -oma[np.array([0, 6])]
+        oma[np.array([1, 4, 7, 10])] += 0.6
+        oma[np.array([2, 5, 8, 11])] += -0.66
+
+        oma[np.array([0, 3, 6, 9])] = -oma[np.array([0, 3, 6, 9])]
+        oma[np.array([1, 4, 7, 10])] -= 0.67
+        oma[np.array([2, 5, 8, 11])] -= -1.25
+        action = oma
         if d:
             print(i)
             env.reset()            
