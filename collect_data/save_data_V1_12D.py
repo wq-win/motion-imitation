@@ -6,10 +6,10 @@ import numpy as np
 import tqdm
 np.seterr(all='raise')
 np.random.seed(0)
-CONSTAN_FACTOR = 2000
+CONSTAN_FACTOR = 2000 
 SAMPLE_POINT_NUMS = 10 # 1e5
 SAMPLE_POINT_NUMS = int(SAMPLE_POINT_NUMS)
-ITER_TIMES = 1000
+ITER_TIMES = 50
 TIMESTEP = 1 / 30
 JOINT_NUMS = 12
 JOINT_INDEX_START = 7
@@ -110,12 +110,15 @@ output_list.append(p_motor_angle_v)
 color_list.append(np.zeros((pace_len, 3)))
 
 
-# p_motor_angle_tile = np.tile(p_motor_angle, (int(POINT_NUMS / 4), 1))
-# p_motor_angle_v_tile = np.tile(p_motor_angle_v, (int(POINT_NUMS / 4), 1))
-# input_list.append(p_motor_angle_tile)
-# output_list.append(p_motor_angle_v_tile)
-# color_list.append(np.zeros((p_motor_angle_tile.shape[0], 3)))
+p_motor_angle_tile = np.tile(p_motor_angle, (int(SAMPLE_POINT_NUMS / 4), 1))
+p_motor_angle_v_tile = np.tile(p_motor_angle_v, (int(SAMPLE_POINT_NUMS / 4), 1))
+input_list.append(p_motor_angle_tile)
+output_list.append(p_motor_angle_v_tile)
+color_list.append(np.zeros((p_motor_angle_tile.shape[0], 3)))
 
+def sigmoid(x : np.array):
+    # return .5 * x
+    return (1 / (1 + np.exp(-x)) - .5)
 def set_axes_equal(ax):
     """
     Make axes of 3D plot have equal scale so that spheres appear as spheres,
@@ -176,7 +179,8 @@ def calculate_point_normal_direction(point, mass_weight):
         point2ring_nearest_index = point2ring_nearest_index_temp
     ring_nearest_index_v = p_motor_angle_v[point2ring_nearest_index]
     ring_nearest_index_v_norm = np.linalg.norm(ring_nearest_index_v)
-    if point2ring_distances[point2ring_nearest_index] < p_motor_angle_v_norm[point2ring_nearest_index] * TIMESTEP * 2:
+    distances_flag = point2ring_distances[point2ring_nearest_index] < p_motor_angle_v_norm[point2ring_nearest_index] * TIMESTEP * 2
+    if distances_flag:
         displacement_on_ring_projection = np.dot(point2ring_displacement[point2ring_nearest_index],
                                                  ring_nearest_index_v) / ring_nearest_index_v_norm
         point2ring_normal_vector = point2ring_displacement[
@@ -189,9 +193,15 @@ def calculate_point_normal_direction(point, mass_weight):
         force = np.sum(forces, axis=0) / forces.shape[0]
         direction = force / np.linalg.norm(force)
     return direction, point2ring_distances, point2ring_nearest_index, ring_nearest_index_v, point2ring_displacement[
-        point2ring_nearest_index]
+        point2ring_nearest_index], distances_flag
 
-
+def calculate_point_displacement(distances_flag, ring_nearest_index_v, displacement):
+    displacement_normalize = displacement / np.linalg.norm(displacement)
+    ring_nearest_index_v_norm = np.linalg.norm(ring_nearest_index_v)
+    if distances_flag:
+        return displacement_normalize * ring_nearest_index_v_norm
+    else:
+        return displacement
 def calculate_point_tangent_velocity(distances, point2ring_nearest_index, ring_nearest_index_v,
                                      point2ring_nearest_displacement, decay=10):  # 200
     # for i, distance in enumerate(distances):
@@ -257,13 +267,15 @@ if __name__ == '__main__':
         point = sample_random_point()
         for i in range(ITER_TIMES):
             input_list.append(copy.deepcopy(point))
-            normal_direction, point2ring_distances, point2ring_nearest_index, ring_nearest_index_v, point2ring_nearest_displacement = calculate_point_normal_direction(
+            normal_direction, point2ring_distances, point2ring_nearest_index, ring_nearest_index_v, point2ring_nearest_displacement, distances_flag = calculate_point_normal_direction(
                 point, mass_weight)
+            
             normal_displacement = repulse(normal_direction, point2ring_distances, mass_weight)
             tangent_displacement = calculate_point_tangent_velocity(point2ring_distances, point2ring_nearest_index,
                                                                     ring_nearest_index_v,
                                                                     point2ring_nearest_displacement)
             displacement =  tangent_displacement + normal_displacement #+  # + t_displacement
+            displacement = calculate_point_displacement(distances_flag, ring_nearest_index_v, displacement)
             point += displacement * TIMESTEP
             output_list.append(displacement)
         color = np.ones((ITER_TIMES, 3))
@@ -272,23 +284,24 @@ if __name__ == '__main__':
         # color[:, 2] = np.linspace(0.8, 0, ITER_TIMES)
         color_list.append(color)
 
-    # for _ in tqdm.tqdm(range(int(SAMPLE_POINT_NUMS / 4))):
-    #     point = sample_random_point_pi()
-    #     for i in range(ITER_TIMES):
-    #         input_list.append(copy.deepcopy(point))
-    #         normal_direction, point2ring_distances, point2ring_nearest_index, ring_nearest_index_v, point2ring_nearest_displacement = calculate_point_normal_direction(
-    #             point, mass_weight)
-    #         normal_displacement = repulse(normal_direction, point2ring_distances, mass_weight)
-    #         tangent_displacement = calculate_point_tangent_velocity(point2ring_distances, point2ring_nearest_index,
-    #                                                                 ring_nearest_index_v,
-    #                                                                 point2ring_nearest_displacement)
-    #         displacement = tangent_displacement + normal_displacement  # + t_displacement
-    #         point += displacement
-    #         output_list.append(displacement)
-    #     color = np.ones((ITER_TIMES, 3))
-    #     color[:, 1] = np.linspace(0.8, 0, ITER_TIMES)
-    #     color[:, 2] = np.linspace(0.8, 0, ITER_TIMES)
-    #     color_list.append(color)
+    for _ in tqdm.tqdm(range(int(SAMPLE_POINT_NUMS / 4))):
+        point = sample_random_point_pi()
+        for i in range(ITER_TIMES):
+            input_list.append(copy.deepcopy(point))
+            normal_direction, point2ring_distances, point2ring_nearest_index, ring_nearest_index_v, point2ring_nearest_displacement, distances_flag = calculate_point_normal_direction(
+                point, mass_weight)
+            normal_displacement = repulse(normal_direction, point2ring_distances, mass_weight)
+            tangent_displacement = calculate_point_tangent_velocity(point2ring_distances, point2ring_nearest_index,
+                                                                    ring_nearest_index_v,
+                                                                    point2ring_nearest_displacement)
+            displacement = tangent_displacement + normal_displacement  # + t_displacement
+            displacement = calculate_point_displacement(distances_flag, ring_nearest_index_v, displacement)
+            point += displacement * TIMESTEP
+            output_list.append(displacement)
+        color = np.ones((ITER_TIMES, 3))
+        color[:, 1] = np.linspace(0.8, 0, ITER_TIMES)
+        color[:, 2] = np.linspace(0.8, 0, ITER_TIMES)
+        color_list.append(color)
 
     input_array = np.vstack(input_list)
     output_array = np.vstack(output_list)
@@ -305,7 +318,7 @@ if __name__ == '__main__':
     trajactory_ploter(input_array, output_array, index_range=[0000, 1000], dim=JOINT_NUMS, color_array=color_array, x=9,
                       y=10, z=11, u=9, v=10, w=11)
     allresult = {'input': input_array, 'output': output_array}
-    file_path = f'dataset/save_data_V4_{SAMPLE_POINT_NUMS}_{ITER_TIMES}.pkl'
+    file_path = f'dataset/save_data_V5_{SAMPLE_POINT_NUMS}_{ITER_TIMES}.pkl'
     directory = os.path.dirname(file_path)
     if not os.path.exists(directory):
         os.makedirs(directory)

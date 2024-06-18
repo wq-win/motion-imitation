@@ -1,4 +1,7 @@
+import pickle
+from matplotlib import pyplot as plt
 import numpy as np
+import torch
 from motion_imitation.envs import env_builder
 from mpi4py import MPI
 import os
@@ -7,7 +10,19 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(currentdir)
 print(parentdir)
 os.sys.path.insert(0, parentdir)
+from pretrain import pretrain_save_data_V1
 
+
+input_list = []
+output_list = []
+
+TIMESTEP = 1 / 30
+ENABLE_ENV_RANDOMIZER = True
+motion_file = "motion_imitation/data/motions/dog_pace.txt"
+num_procs = MPI.COMM_WORLD.Get_size()
+mode = "test"
+enable_env_rand = ENABLE_ENV_RANDOMIZER and (mode != "test")
+visualize = True
 
 pace = [
   [0.00000, 0.00000, 0.43701, 0.49491, 0.53393, 0.49912, 0.46997, -0.12721, 0.07675, -0.95545, -0.25301, 0.18682, -1.14403, -0.19362, 0.14030, -0.77823, -0.09528, 0.05437, -0.97596],
@@ -50,57 +65,90 @@ pace = [
   [0.67005, 0.00126, 0.43824, 0.51299, 0.51174, 0.49342, 0.48113, -0.12047, 0.05387, -0.95210, -0.21892, 0.23998, -1.07604, -0.22485, 0.10828, -0.79239, -0.08403, 0.22582, -1.04134],
   [0.68773, 0.00000, 0.43701, 0.50903, 0.51581, 0.49242, 0.48203, -0.12785, 0.09815, -0.95073, -0.26299, 0.10340, -1.12756, -0.23415, 0.13683, -0.78085, -0.07723, 0.11886, -1.01564]
 ]
+pace_array = np.array(pace)
+p_motor_angle = pace_array[:, 7:]
+p_motor_angle_next = np.vstack((p_motor_angle[1:, :], p_motor_angle[:1, :]))
+p_motor_angle_displacement = p_motor_angle_next - p_motor_angle
+p_motor_angle_v = p_motor_angle_displacement / TIMESTEP
+input_list.append(p_motor_angle)
+output_list.append(p_motor_angle_v)
 
-ENABLE_ENV_RANDOMIZER = True
-motion_file = "motion_imitation/data/motions/dog_pace.txt"
-num_procs = MPI.COMM_WORLD.Get_size()
-mode = "test"
-enable_env_rand = ENABLE_ENV_RANDOMIZER and (mode != "test")
-visualize = False
+def set_axes_equal(ax):
+    """
+    Make axes of 3D plot have equal scale so that spheres appear as spheres,
+    cubes as cubes, etc.
 
-def main():   
-    env = env_builder.build_imitation_env(motion_files=[motion_file],
-                                            num_parallel_envs=num_procs,
-                                            mode=mode,
-                                            enable_randomizer=enable_env_rand,
-                                            enable_rendering=visualize)
-    pace_array = np.array(pace)
-    p_ma = pace_array[:, 7:]
-    
-    # pma to oma
-    p_ma[:, np.array([0, 6])] = -p_ma[:, np.array([0, 6])]
-    p_ma[:, np.array([1, 4, 7, 10])] += 0.6
-    p_ma[:, np.array([2, 5, 8, 11])] += -0.66
-    
-    # oma to a
-    p_ma[:, np.array([0, 3, 6, 9])] = -p_ma[:, np.array([0, 3, 6, 9])]
-    p_ma[:, np.array([1, 4, 7, 10])] -= 0.67
-    p_ma[:, np.array([2, 5, 8, 11])] -= -1.25
-    
-    env.reset()
-    env.render(mode='rgb_array')
+    Input
+      ax: a matplotlib axis, e.g., as output from plt.gca().
+    """
 
-    i = 38
-    next_index = 2
-    j = 0
-    done_times = 0
-    sum_step = 0
-    while True:
-        i = i % p_ma.shape[0]
-        action = p_ma[i]
-        o, r, d, _ = env.step(action)
-        i += next_index
-        j += 1 
-        if d:
-            done_times += 1
-            sum_step += j
-            env.reset()  
-            i = 38
-            print(f'done_times:{done_times},average_episode_step:{sum_step / done_times}',end='\r')
-            j = 0
-        if done_times == 100:
-            print(f'\nnext_index:{next_index},average_episode_step:{sum_step / done_times}')
-            break         
-    env.close()
-if __name__ == '__main__':
-    main()
+    x_limits = ax.get_xlim3d()
+    y_limits = ax.get_ylim3d()
+    z_limits = ax.get_zlim3d()
+
+    x_range = abs(x_limits[1] - x_limits[0])
+    x_middle = np.mean(x_limits)
+    y_range = abs(y_limits[1] - y_limits[0])
+    y_middle = np.mean(y_limits)
+    z_range = abs(z_limits[1] - z_limits[0])
+    z_middle = np.mean(z_limits)
+
+    # The plot bounding box is a sphere in the sense of the infinity
+    # norm, hence I call half the max range the plot radius.
+    plot_radius = 0.5*max([x_range, y_range, z_range])
+
+    ax.set_xlim3d([x_middle - plot_radius, x_middle + plot_radius])
+    ax.set_ylim3d([y_middle - plot_radius, y_middle + plot_radius])
+    ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
+   
+def trajactory_ploter(start, end, x=0, y=1, z=2, u=0, v=1, w=2):
+    ax = plt.figure().add_subplot(projection='3d')
+
+    # Make the grid
+    X = start[:, x]
+    Y = start[:, y]
+    Z = start[:, z]
+
+    # Make the direction data for the arrows
+    U = end[:, u]
+    V = end[:, v]
+    W = end[:, w]
+
+    ax.quiver(X, Y, Z, U, V, W, normalize=False, length=TIMESTEP)
+    ax.set_xlabel('X-axis')
+    ax.set_ylabel('Y-axis')
+    ax.set_zlabel('Z-axis')
+    ax.set_title('12 dimension')
+    set_axes_equal(ax)
+    
+    plt.show()
+
+
+env = env_builder.build_imitation_env(motion_files=[motion_file],
+                                        num_parallel_envs=num_procs,
+                                        mode=mode,
+                                        enable_randomizer=enable_env_rand,
+                                        enable_rendering=visualize)
+
+test_model = pretrain_save_data_V1.Net(12, 12)
+test_model.load_state_dict(torch.load('pretrain_model/save_data_V5_model_06_18_18_47_48.pkl', map_location=torch.device('cpu')))
+o = env.reset()
+# env.render(mode='rgb_array')
+oma = o[48:60]
+# for i in range(10):
+#   oma = np.random.uniform(-np.pi, np.pi, size=12)
+for _ in range(20):
+    input_list.append(oma)
+    oma = torch.tensor(oma, dtype=torch.float32)
+    displacement = test_model(oma)
+    displacement = displacement.detach().numpy()
+    output_list.append(displacement)
+    oma += displacement * TIMESTEP 
+    
+print(oma)
+# env.close()
+
+input_list = np.vstack(input_list)
+output_list = np.vstack(output_list)
+trajactory_ploter(input_list, output_list,)
+
