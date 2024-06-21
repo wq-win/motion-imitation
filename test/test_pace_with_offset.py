@@ -56,7 +56,7 @@ motion_file = "motion_imitation/data/motions/dog_pace.txt"
 num_procs = MPI.COMM_WORLD.Get_size()
 mode = "test"
 enable_env_rand = ENABLE_ENV_RANDOMIZER and (mode != "test")
-visualize = False
+visualize = True
 
 def main():   
     env = env_builder.build_imitation_env(motion_files=[motion_file],
@@ -91,16 +91,16 @@ def main():
         o, r, d, _ = env.step(action)
         i += next_index
         j += 1 
-        if d:
-            done_times += 1
-            sum_step += j
-            env.reset()  
-            i = 38
-            print(f'done_times:{done_times},average_episode_step:{sum_step / done_times}',end='\r')
-            j = 0
-        if done_times == 100:
-            print(f'\nnext_index:{next_index},average_episode_step:{sum_step / done_times}')
-            break         
+        # if d:
+        #     done_times += 1
+        #     sum_step += j
+        #     env.reset()  
+        #     i = 38
+        #     print(f'done_times:{done_times},average_episode_step:{sum_step / done_times}',end='\r')
+        #     j = 0
+        # if done_times == 100:
+        #     print(f'\nnext_index:{next_index},average_episode_step:{sum_step / done_times}')
+        #     break         
     env.close()
 if __name__ == '__main__':
     main()

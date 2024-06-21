@@ -160,11 +160,15 @@ def main():
                                             enable_rendering=True)
     
     test_model = pretrain_save_data_V1.Net(12, 12)
-    test_model.load_state_dict(torch.load('pretrain_model/save_data_V5_model_06_18_18_47_48.pkl', map_location=torch.device('cpu')))
+    test_model.load_state_dict(torch.load('pretrain_model/save_data_V5_model_06_21_11_06_43.pkl', map_location=torch.device('cpu')))
     o = env.reset()
     o = torch.tensor(o, dtype=torch.float32)
     env.render(mode='rgb_array')
     oma = o[48:60]
+    oa = o[12:24]
+    oa[np.array([1, 4, 7, 10])] -= 0.67
+    oa[np.array([2, 5, 8, 11])] -= -1.25
+    error_oa_oma = oa[12:24] - oma
     
     pma = copy.deepcopy(oma)
     # oma to pma
@@ -173,10 +177,11 @@ def main():
     pma[np.array([2, 5, 8, 11])] -= -0.66
 
     displacement = test_model(pma)
+    displacement[np.array([0, 6])] = -displacement[np.array([0, 6])]
     pma = pma.detach().numpy()
     input_list.append(pma)
     # displacement = 0
-    action_o = oma + displacement * TIMESTEP * DISPLACEMENT_RATE
+    action_o = oma + displacement * TIMESTEP * DISPLACEMENT_RATE + error_oa_oma
     displacement = displacement.detach().numpy()
     output_list.append(displacement)
     
@@ -199,6 +204,11 @@ def main():
         step_action[np.array([2, 5, 8, 11])] -= -0.66
         step_action_list.append(step_action)
         o, r, d, _ = env.step(action)
+        oa = o[12:24]
+        oa[np.array([1, 4, 7, 10])] -= 0.67
+        oa[np.array([2, 5, 8, 11])] -= -1.25
+        error_oa_oma = oa[12:24] - o[48:60]
+
         oma_array = copy.deepcopy(o[48:60])
         oma_array[np.array([0, 6])] = -oma_array[np.array([0, 6])]
         oma_array[np.array([1, 4, 7, 10])] -= 0.6
@@ -216,7 +226,7 @@ def main():
         pma = pma.detach().numpy()
         input_list.append(pma)
         # displacement = 0
-        action_o = oma + displacement * TIMESTEP * DISPLACEMENT_RATE
+        action_o = oma + displacement * TIMESTEP * DISPLACEMENT_RATE + error_oa_oma
         displacement = displacement.detach().numpy()
         output_list.append(displacement)
 
