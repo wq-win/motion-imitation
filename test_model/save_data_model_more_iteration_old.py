@@ -50,6 +50,8 @@ def main():
     action = oma
 
     i = 0
+    done_times = 0
+    sum_step = 0
     while True: 
         action = action.detach().numpy()
         o, r, d, _ = env.step(action)
@@ -69,11 +71,17 @@ def main():
         oma[np.array([1, 4, 7, 10])] -= 0.67
         oma[np.array([2, 5, 8, 11])] -= -1.25
         action = oma
+        i += 1
         if d:
+            done_times += 1
+            sum_step += i
             print(i)
             env.reset()            
             i = 0
-        i += 1
+        
+        # if done_times == 100:
+        #     print(f'\naverage_episode_step:{sum_step / done_times}')
+        #     break
     env.close()
 if __name__ == '__main__':
     main()

@@ -1,18 +1,23 @@
 import copy
 import os
 import pickle
+import time
 from matplotlib import pyplot as plt
 import numpy as np
 import tqdm
 np.seterr(all='raise')
 np.random.seed(0)
+
+NOWTIME = time.strftime("%m_%d", time.localtime())
+
 CONSTAN_FACTOR = 2000 
-SAMPLE_POINT_NUMS = 10 # 1e5
+SAMPLE_POINT_NUMS = 1e5 # 1e5
 SAMPLE_POINT_NUMS = int(SAMPLE_POINT_NUMS)
-ITER_TIMES = 50
+ITER_TIMES = 100
 TIMESTEP = 1 / 30
 JOINT_NUMS = 12
 JOINT_INDEX_START = 7
+DISTANCEMENT_THRESHOLD = 100
 input_list = []
 output_list = []
 color_list = []
@@ -179,7 +184,7 @@ def calculate_point_normal_direction(point, mass_weight):
         point2ring_nearest_index = point2ring_nearest_index_temp
     ring_nearest_index_v = p_motor_angle_v[point2ring_nearest_index]
     ring_nearest_index_v_norm = np.linalg.norm(ring_nearest_index_v)
-    distances_flag = point2ring_distances[point2ring_nearest_index] < p_motor_angle_v_norm[point2ring_nearest_index] * TIMESTEP * 2
+    distances_flag = point2ring_distances[point2ring_nearest_index] < p_motor_angle_v_norm[point2ring_nearest_index] * TIMESTEP * DISTANCEMENT_THRESHOLD
     if distances_flag:
         displacement_on_ring_projection = np.dot(point2ring_displacement[point2ring_nearest_index],
                                                  ring_nearest_index_v) / ring_nearest_index_v_norm
@@ -219,7 +224,7 @@ def calculate_point_tangent_velocity(distances, point2ring_nearest_index, ring_n
     force = np.sum(forces, axis=0)
     distance = np.sum(1 / (distances ** 2), axis=0)
     velocity = force / distance
-    if np.linalg.norm(point2ring_nearest_displacement) < p_motor_angle_v_norm[point2ring_nearest_index] * TIMESTEP * 2:
+    if np.linalg.norm(point2ring_nearest_displacement) < p_motor_angle_v_norm[point2ring_nearest_index] * TIMESTEP * DISTANCEMENT_THRESHOLD:
         ring_nearest_index_v_norm = np.linalg.norm(ring_nearest_index_v)
         t_velocity = (np.dot(velocity, ring_nearest_index_v) * ring_nearest_index_v /
                       ring_nearest_index_v_norm ** 2)
@@ -318,7 +323,7 @@ if __name__ == '__main__':
     trajactory_ploter(input_array, output_array, index_range=[0000, 1000], dim=JOINT_NUMS, color_array=color_array, x=9,
                       y=10, z=11, u=9, v=10, w=11)
     allresult = {'input': input_array, 'output': output_array}
-    file_path = f'dataset/save_data_V5_{SAMPLE_POINT_NUMS}_{ITER_TIMES}.pkl'
+    file_path = f'dataset/save_data_V{NOWTIME}_{SAMPLE_POINT_NUMS}_{ITER_TIMES}.pkl'
     directory = os.path.dirname(file_path)
     if not os.path.exists(directory):
         os.makedirs(directory)

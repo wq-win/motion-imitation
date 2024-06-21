@@ -37,7 +37,7 @@ class Net(nn.Module):
 if __name__ == "__main__":
     print(DEVICE)
     # update the data path
-    with open('dataset/save_data_V5_100000_50.pkl', 'rb') as f:
+    with open('dataset/save_data_V5_100000_100.pkl', 'rb') as f:
             allresult = pickle.load(f)
 
     input = np.array(allresult['input'])

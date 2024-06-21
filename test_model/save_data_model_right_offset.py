@@ -13,18 +13,16 @@ print(parentdir)
 os.sys.path.insert(0, parentdir)
 from pretrain import pretrain_save_data_V1
 
+
 TIMESTEP = 1 / 30
-DISPLACEMENT_RATE = 7
-ENABLE_ENV_RANDOMIZER = True
-motion_file = "motion_imitation/data/motions/dog_pace.txt"
-num_procs = MPI.COMM_WORLD.Get_size()
-mode = "test"
-enable_env_rand = ENABLE_ENV_RANDOMIZER and (mode != "test")
-visualize = True
+DISPLACEMENT_RATE = 1
 
 input_list = []
 output_list = []
 color_list = []
+
+step_action_list = []
+oma_list = []
 
 pace = [
   [0.00000, 0.00000, 0.43701, 0.49491, 0.53393, 0.49912, 0.46997, -0.12721, 0.07675, -0.95545, -0.25301, 0.18682, -1.14403, -0.19362, 0.14030, -0.77823, -0.09528, 0.05437, -0.97596],
@@ -76,6 +74,8 @@ p_motor_angle_v = p_motor_angle_displacement / TIMESTEP
 input_list.append(p_motor_angle)
 output_list.append(p_motor_angle_v)
 color_list.append(np.zeros((pace_len, 3)))
+
+
 def set_axes_equal(ax):
     """
     Make axes of 3D plot have equal scale so that spheres appear as spheres,
@@ -103,7 +103,8 @@ def set_axes_equal(ax):
     ax.set_xlim3d([x_middle - plot_radius, x_middle + plot_radius])
     ax.set_ylim3d([y_middle - plot_radius, y_middle + plot_radius])
     ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
-   
+
+
 def trajactory_ploter(start, end, color_array=None, x=0, y=1, z=2, u=0, v=1, w=2):
     ax = plt.figure().add_subplot(projection='3d')
 
@@ -129,13 +130,34 @@ def trajactory_ploter(start, end, color_array=None, x=0, y=1, z=2, u=0, v=1, w=2
     set_axes_equal(ax)
     plt.show()
 
+
+def parameter_ploter(array1, array2, x=0, y=1, z=2):
+    x_p = p_motor_angle[:, x]
+    y_p = p_motor_angle[:, y]
+    z_p = p_motor_angle[:, z]
+
+    x_array1 = array1[:, x]
+    y_array1 = array1[:, y] 
+    z_array1 = array1[:, z]
+    
+    x_array2 = array2[:, x]
+    y_array2 = array2[:, y]
+    z_array2 = array2[:, z]
+    ax = plt.figure().add_subplot(projection='3d')
+    ax.plot(x_p, y_p, z_p, color='g', label='pace')
+    ax.plot(x_array1, y_array1, z_array1, color='r', label='action')
+    ax.plot(x_array2, y_array2, z_array2, color='b', label='oma')
+    ax.legend()
+    plt.show()
+
+
 def main():
 
-    env = env_builder.build_imitation_env(motion_files=[motion_file],
-                                            num_parallel_envs=num_procs,
-                                            mode=mode,
-                                            enable_randomizer=enable_env_rand,
-                                            enable_rendering=visualize)
+    env = env_builder.build_imitation_env(motion_files=["motion_imitation/data/motions/dog_pace.txt"],
+                                            num_parallel_envs=MPI.COMM_WORLD.Get_size(),
+                                            mode="test",
+                                            enable_randomizer=False,
+                                            enable_rendering=True)
     
     test_model = pretrain_save_data_V1.Net(12, 12)
     test_model.load_state_dict(torch.load('pretrain_model/save_data_V5_model_06_18_18_47_48.pkl', map_location=torch.device('cpu')))
@@ -165,11 +187,23 @@ def main():
     action = action_o
 
     i = 0
-    total_times = 1e1
-    TOTAL_TIMES = total_times
+    total_times = 1e3
+    TOTAL_TIMES = int(total_times)
     while total_times: 
         action = action.detach().numpy()
+        step_action = copy.deepcopy(action)
+        step_action[np.array([1, 4, 7, 10])] += 0.67
+        step_action[np.array([2, 5, 8, 11])] += -1.25
+        step_action[np.array([0, 6])] = -step_action[np.array([0, 6])]
+        step_action[np.array([1, 4, 7, 10])] -= 0.6
+        step_action[np.array([2, 5, 8, 11])] -= -0.66
+        step_action_list.append(step_action)
         o, r, d, _ = env.step(action)
+        oma_array = copy.deepcopy(o[48:60])
+        oma_array[np.array([0, 6])] = -oma_array[np.array([0, 6])]
+        oma_array[np.array([1, 4, 7, 10])] -= 0.6
+        oma_array[np.array([2, 5, 8, 11])] -= -0.66
+        oma_list.append(oma_array)
         o = torch.tensor(o, dtype=torch.float32)
         oma = o[48:60]
         pma = copy.deepcopy(oma)
@@ -210,7 +244,19 @@ if __name__ == '__main__':
     output_list = np.vstack(output_list)
     color_array = np.vstack(color_list)
     trajactory_ploter(input_list, output_list, color_array,)
-    # trajactory_ploter(input_list, output_list, color_array, x=3, y=4, z=5, u=3, v=4, w=5)
+    # trajactory_ploter(input_list, outpuenable_env_randt_list, color_array, x=3, y=4, z=5, u=3, v=4, w=5)
     # trajactory_ploter(input_list, output_list, color_array, x=6, y=7, z=8, u=6, v=7, w=8)
     # trajactory_ploter(input_list, output_list, color_array, x=9, y=10, z=11, u=9, v=10, w=11)
-    
+    step_action_list = np.array(step_action_list)
+    oma_list = np.array(oma_list)
+    plt.figure()
+    for i in range(12):
+        plt.subplot(4, 3, i+1)
+        plt.plot(range(len(step_action_list[:, i]),), step_action_list[:, i], label=f'step_action_list:{i}', linestyle='--')
+        plt.plot(range(len(oma_list[:, i]), ), oma_list[:, i], label=f'oma_list:{i}', linestyle='-')
+        plt.legend()
+    plt.show()  
+    parameter_ploter(step_action_list, oma_list)
+    parameter_ploter(step_action_list, oma_list, x=3, y=4, z=5)
+    parameter_ploter(step_action_list, oma_list, x=6, y=7, z=8)
+    parameter_ploter(step_action_list, oma_list, x=9, y=10, z=11)
