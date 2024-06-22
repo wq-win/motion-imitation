@@ -11,13 +11,13 @@ np.random.seed(0)
 NOWTIME = time.strftime("%m_%d", time.localtime())
 
 CONSTAN_FACTOR = 2000 
-SAMPLE_POINT_NUMS = 1e5 # 1e5
+SAMPLE_POINT_NUMS = 10 # 1e5
 SAMPLE_POINT_NUMS = int(SAMPLE_POINT_NUMS)
 ITER_TIMES = 100
 TIMESTEP = 1 / 30
 JOINT_NUMS = 12
 JOINT_INDEX_START = 7
-DISTANCEMENT_THRESHOLD = 100
+DISTANCEMENT_THRESHOLD = 2
 input_list = []
 output_list = []
 color_list = []
@@ -203,7 +203,7 @@ def calculate_point_normal_direction(point, mass_weight):
 def calculate_point_displacement(distances_flag, ring_nearest_index_v, displacement):
     displacement_normalize = displacement / np.linalg.norm(displacement)
     ring_nearest_index_v_norm = np.linalg.norm(ring_nearest_index_v)
-    if distances_flag:
+    if True:
         return displacement_normalize * ring_nearest_index_v_norm
     else:
         return displacement

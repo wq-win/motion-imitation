@@ -1,12 +1,4 @@
 import numpy as np
-from motion_imitation.envs import env_builder
-from mpi4py import MPI
-import os
-import inspect
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(currentdir)
-print(parentdir)
-os.sys.path.insert(0, parentdir)
 
 
 pace = [
@@ -50,57 +42,4 @@ pace = [
   [0.67005, 0.00126, 0.43824, 0.51299, 0.51174, 0.49342, 0.48113, -0.12047, 0.05387, -0.95210, -0.21892, 0.23998, -1.07604, -0.22485, 0.10828, -0.79239, -0.08403, 0.22582, -1.04134],
   [0.68773, 0.00000, 0.43701, 0.50903, 0.51581, 0.49242, 0.48203, -0.12785, 0.09815, -0.95073, -0.26299, 0.10340, -1.12756, -0.23415, 0.13683, -0.78085, -0.07723, 0.11886, -1.01564]
 ]
-
-ENABLE_ENV_RANDOMIZER = True
-motion_file = "motion_imitation/data/motions/dog_pace.txt"
-num_procs = MPI.COMM_WORLD.Get_size()
-mode = "test"
-enable_env_rand = ENABLE_ENV_RANDOMIZER and (mode != "test")
-visualize = True
-
-def main():   
-    env = env_builder.build_imitation_env(motion_files=[motion_file],
-                                            num_parallel_envs=num_procs,
-                                            mode=mode,
-                                            enable_randomizer=enable_env_rand,
-                                            enable_rendering=visualize)
-    pace_array = np.array(pace)
-    p_ma = pace_array[:, 7:]
-    
-    # pma to oma
-    p_ma[:, np.array([0, 6])] = -p_ma[:, np.array([0, 6])]
-    p_ma[:, np.array([1, 4, 7, 10])] += 0.6
-    p_ma[:, np.array([2, 5, 8, 11])] += -0.66
-    
-    # oma to a
-    p_ma[:, np.array([0, 3, 6, 9])] = -p_ma[:, np.array([0, 3, 6, 9])]
-    p_ma[:, np.array([1, 4, 7, 10])] -= 0.67
-    p_ma[:, np.array([2, 5, 8, 11])] -= -1.25
-    
-    env.reset()
-    env.render(mode='rgb_array')
-
-    i = 38
-    next_index = 1
-    j = 0
-    done_times = 0
-    sum_step = 0
-    while True:
-        i = i % p_ma.shape[0]
-        action = p_ma[i]
-        o, r, d, _ = env.step(action)
-        i += next_index
-        j += 1 
-        # if d:
-        #     done_times += 1
-        #     sum_step += j
-        #     env.reset()  
-        #     i = 38
-        #     print(f'done_times:{done_times},average_episode_step:{sum_step / done_times}',end='\r')
-        #     j = 0
-        # if done_times == 100:
-        #     print(f'\nnext_index:{next_index},average_episode_step:{sum_step / done_times}')
-        #     break         
-    env.close()
-if __name__ == '__main__':
-    main()
+pma = np.array(pace)[:, 7:10]

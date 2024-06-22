@@ -8,3 +8,4 @@
 *.*.pyc
 .gitignore
 
+test_model/test.py
