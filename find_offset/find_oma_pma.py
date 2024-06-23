@@ -66,5 +66,5 @@ for i in range(12):
     plt.plot(range(len(p_ma[:, i]),), p_ma[:, i], label=f'pma:{i}', linestyle='--')
     plt.plot(range(0, len(o_motor_angle[:, i]) * 2, 2), o_motor_angle[:, i], label=f'oma:{i}', linestyle='-')
     plt.legend()
-plt.savefig('result/compare/oma_pma.png', dpi=300)
+# plt.savefig('result/compare/oma_pma.png', dpi=300)
 plt.show()   
