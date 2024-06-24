@@ -4,14 +4,24 @@ import numpy as np
 def pma_to_oma(pma):
     oma = copy.deepcopy(pma)
     oma[:, np.array([0, 6])] = -pma[:, np.array([0, 6])]
-    oma[:, np.array([1, 4, 7, 10])] += 0.6
-    oma[:, np.array([2, 5, 8, 11])] += -0.66
+    oma[:, np.array([1, 4, 7, 10])] -= -0.6
+    oma[:, np.array([2, 5, 8, 11])] -= 0.66
     return oma
+
+
+def pma_to_oma_3dim(pma):
+    oma = copy.deepcopy(pma)
+    oma[:, np.array([0])] = -pma[:, np.array([0])]
+    oma[:, np.array([1])] -= -0.6
+    oma[:, np.array([2])] -= 0.66
+    return oma
+
+
 def oma_to_pma(oma):
     pma = copy.deepcopy(oma)
     pma[:, np.array([0, 6])] = -oma[:, np.array([0, 6])]
-    pma[np.array([1, 4, 7, 10])] -= 0.6
-    pma[np.array([2, 5, 8, 11])] -= -0.66
+    pma[:, np.array([1, 4, 7, 10])] += -0.6
+    pma[:, np.array([2, 5, 8, 11])] += 0.66
     return pma
 def oma_to_right_action(oma):
     action = copy.deepcopy(oma)
