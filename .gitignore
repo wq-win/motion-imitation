@@ -1,4 +1,4 @@
-dataset/o_a_collect_nums_1000.pkl
+collect_dataset/o_a_collect_nums_1000.pkl
 *.png
 *.ipynb
 *py[ocd]

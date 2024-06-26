@@ -1,22 +1,35 @@
 import copy
 import numpy as np
 
-def pma_to_oma(pma):
+def pma_to_oma(pma: np.ndarray) -> np.ndarray:
+    assert pma.shape[1] == 12, 'The dimension of pma is not 12'
     oma = copy.deepcopy(pma)
-    oma[:, np.array([0, 6])] = -pma[:, np.array([0, 6])]
-    oma[:, np.array([1, 4, 7, 10])] -= -0.6
-    oma[:, np.array([2, 5, 8, 11])] -= 0.66
+    if pma.shape[0] > 1:
+        oma[:, np.array([0, 6])] = -pma[:, np.array([0, 6])]
+        oma[:, np.array([1, 4, 7, 10])] -= -0.6
+        oma[:, np.array([2, 5, 8, 11])] -= 0.66
+    else:
+        oma[np.array([0, 6])] = -pma[np.array([0, 6])]
+        oma[np.array([1, 4, 7, 10])] -= -0.6
+        oma[np.array([2, 5, 8, 11])] -= 0.66
     return oma
 
 
-def pma_to_oma_3dim(pma):
+def pma_to_oma_3dim(pma: np.ndarray) -> np.ndarray:
+    assert pma.shape[1] == 3, 'The dimension of pma is not 3'
     oma = copy.deepcopy(pma)
-    oma[:, np.array([0])] = -pma[:, np.array([0])]
-    oma[:, np.array([1])] -= -0.6
-    oma[:, np.array([2])] -= 0.66
+    if pma.shape[0] > 1:
+        oma[:, np.array([0])] = -pma[:, np.array([0])]
+        oma[:, np.array([1])] -= -0.6
+        oma[:, np.array([2])] -= 0.66
+    else:
+        oma[np.array([0])] = -pma[np.array([0])]
+        oma[np.array([1])] -= -0.6
+        oma[np.array([2])] -= 0.66
     return oma
 
 
+# TODO:fix the bug
 def oma_to_pma(oma):
     pma = copy.deepcopy(oma)
     pma[:, np.array([0, 6])] = -oma[:, np.array([0, 6])]
