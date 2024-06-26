@@ -36,12 +36,14 @@ def oma_to_right_action(oma):
     return action
 
 
-def error_between_target_and_result(o):
+def error_between_target_and_result(o, ignore_hip=False):
     """
     target motorangle is o[12:24]=env.step input action
     result motorangle is o[48:60]=current observation motorangle
     """
     error = o[12:24] - o[48:60]
+    if ignore_hip:
+        error[np.array([0, 3, 6, 9])] = 0
     return error
 
 
@@ -78,7 +80,7 @@ def main():
         without_error_oma_action = oma_to_right_action(without_error_oma)
         without_error_action_list.append(without_error_oma_action)
 
-        next_oma = oma + displacement * TIMESTEP * DISPLACEMENT_RATE + error_between_target_and_result(o) * 1
+        next_oma = oma + displacement * TIMESTEP * DISPLACEMENT_RATE + error_between_target_and_result(o, True) * 1
         action = oma_to_right_action(next_oma)
         action_list.append(action)
         o, r, d, _ = env.step(action)
