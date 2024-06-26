@@ -160,7 +160,7 @@ def main():
                                             enable_rendering=True)
     
     test_model = pretrain_save_data_V1.Net(12, 12)
-    test_model.load_state_dict(torch.load('pretrain_model/save_data_V5_model_06_21_11_06_43.pkl', map_location=torch.device('cpu')))
+    test_model.load_state_dict(torch.load(os.path.join(parentdir,'pretrain_model/save_data_V5_model_06_21_11_06_43.pkl'), map_location=torch.device('cpu')))
     o = env.reset()
     o = torch.tensor(o, dtype=torch.float32)
     env.render(mode='rgb_array')

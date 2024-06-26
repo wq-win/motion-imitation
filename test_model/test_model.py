@@ -24,6 +24,7 @@ without_error_action_list = []
 oma_list = []
 def oma_to_pma(oma):
     pma = copy.deepcopy(oma)
+    # pma[np.array([3, 9])] = -oma[np.array([3, 9])]
     pma[np.array([0, 6])] = -oma[np.array([0, 6])]
     pma[np.array([1, 4, 7, 10])] -= 0.6
     pma[np.array([2, 5, 8, 11])] -= -0.66
@@ -57,9 +58,9 @@ def a_to_oa(a):
 
 def main():
     test_model = pretrain_save_data_V1.Net(12, 12)
-    test_model.load_state_dict(torch.load('pretrain_model/save_data_V5_model_06_21_11_06_43.pkl', map_location=torch.device('cpu')))
+    test_model.load_state_dict(torch.load(os.path.join(parentdir,'pretrain_model/save_data_V5_model_06_21_11_06_43.pkl'), map_location=torch.device('cpu')))
 
-    env = env_builder.build_imitation_env(motion_files=["motion_imitation/data/motions/dog_pace.txt"],
+    env = env_builder.build_imitation_env(motion_files=[os.path.join(parentdir,"motion_imitation/data/motions/dog_pace.txt")],
                                         num_parallel_envs=MPI.COMM_WORLD.Get_size(),
                                         mode="test",
                                         enable_randomizer=False,
@@ -72,11 +73,11 @@ def main():
         pma = oma_to_pma(oma)
         pma = torch.tensor(pma, dtype=torch.float32)
         displacement = test_model(pma)
-        
-        displacement = test_model(pma+displacement*TIMESTEP)
+        for i in range(1):
+            displacement = test_model(pma+displacement*TIMESTEP)
         displacement = displacement.detach().numpy()
-        # displacement[np.array([0, 6])] = -displacement[np.array([0, 6])]
-        displacement[np.array([3, 9])] = -displacement[np.array([3, 9])]
+        displacement[np.array([0, 6])] = -displacement[np.array([0, 6])]
+        # displacement[np.array([3, 9])] = -displacement[np.array([3, 9])]
 
         without_error_oma = oma + displacement * TIMESTEP * DISPLACEMENT_RATE
         without_error_oma_action = oma_to_right_action(without_error_oma)
