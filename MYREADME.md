@@ -16,26 +16,17 @@ os.sys.path.insert(0, parentdir)
 3. test model in environment
    
 #### Training a fully connected network, run the following command:
-```
-1. collect_data/collect_o_a.py  # collect o,a data
-2. pretrain/pretrain_fc_deep.py  # pretrain model Net
-3. test_model/test_fc_deep.py  # test model in environment
-```
+
+1. `python collect/collect_o_a.py`  # collect o,a data
+2. `python pretrain/pretrain_fc_deep.py`  # pretrain model Net
+3. `python test_model/test_fc_deep.py`  # test model in environment
+
 #### Training a attraction ring network, run the following command:
-```
-refactor # 新版本
-1. collect_data/collect_oma_data_from_pma_12dim.py  # 采集数据
-2. pretrain/pretrain_save_data_V1.py  # 预训练
-3. test_model/test_model.py  # 模型测试
-```
+refactor 
+1. `python collect/collect_oma_data.py`  # collect oma data
+   - `python collect_test/test_oma.py`  # test data(plot data)
+2. `python pretrain/pretrain_oma_data_Net.py`  # pretrain model Net
+   - `python test_model/test_oma_Net.py`  # test model Net
+3. `python test_model/test_oma_model.py`  # test model in environment
 
-```
-old # 旧版本 
-collect_data/save_data_V1.py    # 采集数据
 
-pretrain/pretrain_save_data_V1.py # 预训练
-
-test_model/sava_data_model_test_Net.py # 模型Net测试
-
-test_model/save_data_model_right_offset.py   # 模型测试
-```

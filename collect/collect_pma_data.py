@@ -9,17 +9,21 @@ velocity divided by speed is normalized velocity. Use v_normalized to represent.
 The speed weight provided by each ring point is ma_weight.Here, the maximum weight is 1. So it's speed divided by maximum speed.
 """
 import copy
-
+import pickle
+import time
 from matplotlib import pyplot as plt
 import numpy as np
 import os
 import inspect
+
+import tqdm
 currentdir = os.path.dirname(os.path.abspath(
     inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 os.sys.path.insert(0, parentdir)
-from find_offset import all_offset
 
+
+NOWTIME = time.strftime("%m_%d", time.localtime())
 pace = [
     [0.00000, 0.00000, 0.43701, 0.49491, 0.53393, 0.49912, 0.46997, -0.12721, 0.07675, -0.95545, -
         0.25301, 0.18682, -1.14403, -0.19362, 0.14030, -0.77823, -0.09528, 0.05437, -0.97596],
@@ -103,13 +107,11 @@ pace = [
 
 PACE_LEN = len(pace)
 JOINT_INDEX_START = 7
-JOINT_NUMS = 3
+JOINT_NUMS = 12
 TIMESTEP = 1 / 30
 NEXT_INDEX = 1
 DISTANCEMENT_THRESHOLD = 2
 CONSTAN_FACTOR = 2000 
-pma = np.array(pace)[:, JOINT_INDEX_START: JOINT_INDEX_START + JOINT_NUMS]
-oma = all_offset.pma_to_oma_3dim(pma)
 
 
 def calculate_ring_velocity(ma_array):
@@ -125,34 +127,6 @@ def sigmoid(x: np.array):
     # return .5 * x
     return (1 / (1 + np.exp(-x)) - .5)
 
-
-def set_axes_equal(ax):
-    """
-    Make axes of 3D plot have equal scale so that spheres appear as spheres,
-    cubes as cubes, etc.
-
-    Input
-      ax: a matplotlib axis, e.g., as output from plt.gca().
-    """
-
-    x_limits = ax.get_xlim3d()
-    y_limits = ax.get_ylim3d()
-    z_limits = ax.get_zlim3d()
-
-    x_range = abs(x_limits[1] - x_limits[0])
-    x_middle = np.mean(x_limits)
-    y_range = abs(y_limits[1] - y_limits[0])
-    y_middle = np.mean(y_limits)
-    z_range = abs(z_limits[1] - z_limits[0])
-    z_middle = np.mean(z_limits)
-
-    # The plot bounding box is a sphere in the sense of the infinity
-    # norm, hence I call half the max range the plot radius.
-    plot_radius = 0.5 * max([x_range, y_range, z_range])
-
-    ax.set_xlim3d([x_middle - plot_radius, x_middle + plot_radius])
-    ax.set_ylim3d([y_middle - plot_radius, y_middle + plot_radius])
-    ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
 
 
 def sample_random_point(ma_array):
@@ -243,56 +217,47 @@ def repulse(normal_direction, ma_array, point):
     return normal_displacement
 
 
-def trajactory_ploter(position, arrow, index_range=(0, -1), dim=3, color_array=None, x=0, y=1, z=2, u=0, v=1, w=2):
-    ax = plt.figure().add_subplot(projection='3d')
-
-    # Make the grid
-    X = position[index_range[0]:index_range[1], x]
-    Y = position[index_range[0]:index_range[1], y]
-    Z = position[index_range[0]:index_range[1], z]
-
-    # Make the direction data for the arrows
-    U = arrow[index_range[0]:index_range[1], u]
-    V = arrow[index_range[0]:index_range[1], v]
-    W = arrow[index_range[0]:index_range[1], w]
-
-    if color_array is None:
-        ax.quiver(X, Y, Z, U, V, W, normalize=False, length=TIMESTEP)
-    else:
-        ax.quiver(X, Y, Z, U, V, W, color=color_array,
-                  normalize=False, length=TIMESTEP)
-    ax.set_xlabel('X-axis')
-    ax.set_ylabel('Y-axis')
-    ax.set_zlabel('Z-axis')
-    ax.set_title(f'{dim} dimension, x={x}, y={y}, z={z}')
-    set_axes_equal(ax)
-
-    plt.show()
 
 
 if __name__ == '__main__':
-    SAMPLE_POINT_NUMS = 10
+    pma = np.array(pace)[:, JOINT_INDEX_START: JOINT_INDEX_START + JOINT_NUMS]
+
+    SAMPLE_POINT_NUMS = int(1e5)
     ITER_TIMES = 100
     input_list = []
     output_list = []
-    color_list = []
-    for _ in range(SAMPLE_POINT_NUMS // 2):
+
+    for _ in tqdm.tqdm(range(SAMPLE_POINT_NUMS // 2)):
         point = sample_random_point(pma)
         for i in range(ITER_TIMES):
             input_list.append(copy.deepcopy(point))
             normal_direction = calculate_point_normal_direction(pma, point)
             normal_displacement = repulse(normal_direction, pma, point)
             tangent_displacement = calculate_point_tangent_velocity(pma, point)
-            displacement =  tangent_displacement + normal_displacement #+  # + t_displacement
+            displacement =  tangent_displacement + normal_displacement 
             displacement = calculate_point_displacement(pma, point, displacement)
             point += displacement * TIMESTEP
             output_list.append(displacement)
-        color = np.ones((ITER_TIMES, 3))
-        color[:, 1] = np.linspace(0.8, 0, ITER_TIMES)
-        color[:, 0] = np.linspace(0.8, 0, ITER_TIMES)
-        # color[:, 2] = np.linspace(0.8, 0, ITER_TIMES)
-        color_list.append(color)
+        
+    for _ in tqdm.tqdm(range(int(SAMPLE_POINT_NUMS // 2))):
+        point = sample_random_point_pi()
+        for i in range(ITER_TIMES):
+            input_list.append(copy.deepcopy(point))
+            normal_direction = calculate_point_normal_direction(pma, point)
+            normal_displacement = repulse(normal_direction, pma, point)
+            tangent_displacement = calculate_point_tangent_velocity(pma, point)
+            displacement =  tangent_displacement + normal_displacement 
+            displacement = calculate_point_displacement(pma, point, displacement)
+            point += displacement * TIMESTEP
+            output_list.append(displacement)
+
     input_array = np.vstack(input_list)
     output_array = np.vstack(output_list)
-    color_array = np.vstack(color_list)
-    trajactory_ploter(input_array, output_array, color_array=color_array)
+       
+    allresult = {'input': input_array, 'output': output_array, 'ITER_TIMES': ITER_TIMES, 'SAMPLE_POINT_NUMS': SAMPLE_POINT_NUMS}
+    file_path = f'collect_dataset/pma_data_V_{NOWTIME}_{SAMPLE_POINT_NUMS}_{ITER_TIMES}.pkl'
+    directory = os.path.dirname(file_path)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    with open(file_path, 'wb') as f:
+        pickle.dump(allresult, f)

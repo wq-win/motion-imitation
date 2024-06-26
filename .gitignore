@@ -1,4 +1,5 @@
 collect_dataset/o_a_collect_nums_1000.pkl
+collect_dataset/pma_data_V_06_26_100000_100.pkl
 *.png
 *.ipynb
 *py[ocd]
