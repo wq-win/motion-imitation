@@ -1,5 +1,9 @@
 import inspect
 import os
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+os.sys.path.insert(0, parentdir)
+
 from matplotlib import pyplot as plt
 import numpy as np
 from motion_imitation.envs import env_builder as env_builder
@@ -7,9 +11,7 @@ from mpi4py import MPI
 import tensorflow as tf
 from motion_imitation.learning import imitation_policies as imitation_policies
 from motion_imitation.learning import ppo_imitation as ppo_imitation
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(currentdir)
-os.sys.path.insert(0, parentdir)
+
 
 
 a_list = []
@@ -82,5 +84,10 @@ for i in range(12):
         plt.plot(range(len(oma_list[102:402, i]),), oma_list[102:402, i], label=f'oma:{i}', linestyle='-')
         plt.plot(range(len(a_list[100:400, i])), a_list[100:400, i], label=f'a:{i}', linestyle='--')
         plt.legend()
-plt.savefig('result/compare/a_oma.png', dpi=300)    
+        
+file_path = f"result/compare/a_oma.png"
+directory = os.path.dirname(file_path)
+if not os.path.exists(directory):
+    os.makedirs(directory)
+plt.savefig(file_path, dpi=300)    
 plt.show()  

@@ -12,8 +12,8 @@ from torch.utils.data import DataLoader, TensorDataset
 import matplotlib.pyplot as plt
 
 
-NOWTIME = time.strftime("%m_%d_%H_%M_%S", time.localtime())
-BATCH_SIZE = 32
+NOWTIME = time.strftime("%m_%d_%H_%M", time.localtime())
+BATCH_SIZE = 128
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Net(nn.Module):
@@ -37,7 +37,7 @@ class Net(nn.Module):
 if __name__ == "__main__":
     print(DEVICE)
     # update the data path
-    with open('dataset/save_data_V5_100000_100.pkl', 'rb') as f:
+    with open('collect_dataset/oma_data_V_06_26_100000_100.pkl', 'rb') as f:
             allresult = pickle.load(f)
 
     input = np.array(allresult['input'])
@@ -48,8 +48,8 @@ if __name__ == "__main__":
     output_dim = len(output[0])
 
     losses_list = list()
-    episode = 5
-    epoch = 5
+    episode = 2
+    epoch = 2
     lambda1 = 0.2
     learning_rate = 1e-4
 
@@ -87,9 +87,14 @@ if __name__ == "__main__":
 
     plt.plot(range(len(losses_list)), losses_list)
     plt.title(f'weights_nums:{nweights}')
-    plt.savefig(f'result/loss/save_data_V5_loss_{NOWTIME}.png', dpi=300)
+            
+    file_path = f"result/loss/oma_loss_V_{NOWTIME}.png"
+    directory = os.path.dirname(file_path)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    plt.savefig(file_path, dpi=300)
     plt.show()
-    file_path = f"pretrain_model/save_data_V5_model_{NOWTIME}.pkl"
+    file_path = f"pretrain_model/oma_model_{NOWTIME}.pkl"
     directory = os.path.dirname(file_path)
     if not os.path.exists(directory):
         os.makedirs(directory)
