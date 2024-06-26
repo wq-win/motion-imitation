@@ -23,3 +23,12 @@ def error_between_target_and_result(o:np.ndarray, ignore_hip=False) -> np.ndarra
     return error
 
 
+def a_to_oa(a:np.ndarray) -> np.ndarray:
+    """
+    a is action
+    oa is observation action
+    """
+    oa = copy.deepcopy(a)  
+    oa[:, np.array([1, 4, 7,10])] += 0.67
+    oa[:, np.array([2, 5, 8, 11])] += -1.25
+    return oa
