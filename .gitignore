@@ -9,4 +9,4 @@ dataset/o_a_collect_nums_1000.pkl
 .gitignore
 
 test_model/test.py
-collect_data/collect_test.py
+# collect_data/collect_test.py
