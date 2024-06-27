@@ -11,7 +11,10 @@ from collect import collect_pma_data
 
 
 TIMESTEP = collect_pma_data.TIMESTEP
-
+joint_dict = {'rightfront': [0, 1, 2, 0, 1, 2],
+              'leftfront': [3, 4, 5, 3, 4, 5],
+              'rightback': [6, 7, 8, 6, 7, 8],
+              'leftback': [9, 10, 11, 9, 10, 11],}
 
 def set_axes_equal(ax):
     """
@@ -42,7 +45,7 @@ def set_axes_equal(ax):
     ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
 
 
-def ploter(position, direction, x=0, y=1, z=2, u=0, v=1, w=2):
+def ploter(position, direction, is_set_axes_equal=True, x=0, y=1, z=2, u=0, v=1, w=2):
     ax = plt.figure().add_subplot(projection='3d')
     X = position[:, x]
     Y = position[:, y]
@@ -55,7 +58,8 @@ def ploter(position, direction, x=0, y=1, z=2, u=0, v=1, w=2):
     ax.set_ylabel('Y-axis')
     ax.set_zlabel('Z-axis')
     # ax.set_title('Quiver Plot')
-    set_axes_equal(ax)
+    if is_set_axes_equal:
+        set_axes_equal(ax)
     plt.show()
 
 

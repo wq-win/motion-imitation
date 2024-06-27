@@ -13,7 +13,7 @@ import torch
 from motion_imitation.envs import env_builder
 from mpi4py import MPI
 from pretrain import pretrain_oma_data_Net
-from find_offset import test_model_offset
+from find_offset import all_offset
 
 
 TIMESTEP = 1 / 30
@@ -77,12 +77,12 @@ def main():
         oma = oma.detach().numpy()
             
         without_error_oma = oma + displacement * TIMESTEP * DISPLACEMENT_RATE
-        without_error_oma_action = test_model_offset.oma_to_right_action(without_error_oma)  
+        without_error_oma_action = all_offset.oma_to_right_action(without_error_oma)  
         without_error_action_list.append(without_error_oma_action)
             
-        next_oma = oma + displacement * TIMESTEP * DISPLACEMENT_RATE + test_model_offset.error_between_target_and_result(o, True) * 1
+        next_oma = oma + displacement * TIMESTEP * DISPLACEMENT_RATE + all_offset.error_between_target_and_result(o, True) * 1
         # next_oma = oma + displacement * TIMESTEP * DISPLACEMENT_RATE
-        action = test_model_offset.oma_to_right_action(next_oma)  
+        action = all_offset.oma_to_right_action(next_oma)  
 
         action_list.append(action)        
         o, r, d, info = env.step(action)
@@ -102,8 +102,8 @@ if __name__ == "__main__":
     oma_array = np.array(oma_list)
     
     
-    action_array = test_model_offset.a_to_oa(action_array)
-    without_error_action_array = test_model_offset.a_to_oa(without_error_action_array)
+    action_array = all_offset.a_to_oa(action_array)
+    without_error_action_array = all_offset.a_to_oa(without_error_action_array)
 
     
     ploter(action_array, without_error_action_array, oma_array)
