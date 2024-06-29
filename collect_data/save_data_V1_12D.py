@@ -262,8 +262,8 @@ def trajactory_ploter(position, arrow, index_range=(0, -1), dim=3, color_array=N
     ax.set_zlabel('Z-axis')
     ax.set_title(f'{dim} dimension, x={x}, y={y}, z={z}')
     set_axes_equal(ax)
+    return ax
 
-    plt.show()
 
 
 if __name__ == '__main__':
@@ -327,5 +327,6 @@ if __name__ == '__main__':
     directory = os.path.dirname(file_path)
     if not os.path.exists(directory):
         os.makedirs(directory)
+    print(os.path.join(directory, file_path))
     with open(file_path, 'wb') as f:
         pickle.dump(allresult, f)
