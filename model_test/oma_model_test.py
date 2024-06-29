@@ -75,7 +75,7 @@ def main():
             displacement = test_model(oma + displacement * TIMESTEP)  # 这一行执行，相当于迭代两步
         displacement = displacement.detach().numpy()
         oma = oma.detach().numpy()
-            
+        
         without_error_oma = oma + displacement * TIMESTEP * DISPLACEMENT_RATE
         without_error_oma_action = all_offset.oma_to_right_action(without_error_oma)  
         without_error_action_list.append(without_error_oma_action)
@@ -92,6 +92,7 @@ def main():
         if i == 0:
             break
         i -= 1
+        print(i,end='\r')
         
     env.close()
 

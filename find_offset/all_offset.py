@@ -79,7 +79,7 @@ def oma_to_right_action(oma:np.ndarray) -> np.ndarray:
     # 1,4,7,10 -= 0.6742553
     # 2,5,8,11 -= -1.25115246
     action = copy.deepcopy(oma)
-    if len(oma.shape) > 1:
+    if len(oma.shape) > 1 and oma.shape[0] > 1:
         action[:, np.array([0, 3, 6, 9])] = -oma[:, np.array([0, 3, 6, 9])]
         action[:, np.array([1, 4, 7, 10])] -= 0.67
         action[:, np.array([2, 5, 8, 11])] -= -1.25
