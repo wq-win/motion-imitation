@@ -56,9 +56,9 @@ def ploter(action_list, without_error_action_list, oma_list):
 
 def main():
     test_model = pretrain_oma_data_Net.Net(12, 12)
-    test_model.load_state_dict(torch.load('pretrain_model/oma_model_06_26_16_51.pkl', map_location=torch.device('cpu')))
+    test_model.load_state_dict(torch.load(os.path.join(parentdir,'pretrain_model/oma_model_06_26_16_51.pkl'), map_location=torch.device('cpu')))
 
-    env = env_builder.build_imitation_env(motion_files=["motion_imitation/data/motions/dog_pace.txt"],
+    env = env_builder.build_imitation_env(motion_files=[os.path.join(parentdir,"motion_imitation/data/motions/dog_pace.txt")],
                                         num_parallel_envs=MPI.COMM_WORLD.Get_size(),
                                         mode="test",
                                         enable_randomizer=False,
