@@ -1,3 +1,11 @@
+import os
+import inspect
+
+import tqdm
+
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+print(parentdir)
 import pickle
 
 from matplotlib import pyplot as plt
@@ -57,14 +65,16 @@ def trajactory_ploter(position, arrow, index_range=(0.-1), dim=3, color_array=No
     ax.set_title('%d dimension'%(dim))
     set_axes_equal(ax)
     
-    plt.show()  
+    return ax
 
-with open('dataset/save_data_V4_100000_10.pkl', 'rb') as f:
-            allresult = pickle.load(f)
+# with open('dataset/save_data_V4_100000_10.pkl', 'rb') as f:
+with open(os.path.join(parentdir, 'collect_data/dataset/save_data_V06_29_10_100.pkl'), 'rb') as f:
+    allresult = pickle.load(f)
 
 input = np.array(allresult['input'])
 output = np.array(allresult['output'])
 print(input.shape)
-for i in range(input.shape[0]//1000 // 20):
-    trajactory_ploter(input, output, index_range=[i * 1000, (i + 1) * 1000], dim=num_joints, color_array=None,  x=0, y=1, z=2, u=0, v=1, w=2)
-# trajactory_ploter(input, output, index_range=[0, 1000], dim=num_joints, color_array=None,  x=0, y=1, z=2, u=0, v=1, w=2)
+# for i in range(input.shape[0]//1000 // 20):
+#     trajactory_ploter(input, output, index_range=[i * 1000, (i + 1) * 1000], dim=num_joints, color_array=None,  x=0, y=1, z=2, u=0, v=1, w=2)
+ax = trajactory_ploter(input, output, index_range=[0, 1000], dim=num_joints, color_array=None,  x=0, y=1, z=2, u=0, v=1, w=2)
+plt.show()

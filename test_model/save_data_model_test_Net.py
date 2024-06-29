@@ -9,7 +9,7 @@ import inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 print(parentdir)
-os.sys.path.insert(0, parentdir)
+# os.sys.path.insert(0, parentdir)
 from pretrain import pretrain_save_data_V1
 
 
@@ -18,7 +18,8 @@ output_list = []
 
 TIMESTEP = 1 / 30
 ENABLE_ENV_RANDOMIZER = True
-motion_file = "motion_imitation/data/motions/dog_pace.txt"
+
+motion_file =os.path.join(parentdir, "motion_imitation/data/motions/dog_pace.txt")
 num_procs = MPI.COMM_WORLD.Get_size()
 mode = "test"
 enable_env_rand = ENABLE_ENV_RANDOMIZER and (mode != "test")
@@ -131,7 +132,7 @@ env = env_builder.build_imitation_env(motion_files=[motion_file],
                                         enable_rendering=visualize)
 
 test_model = pretrain_save_data_V1.Net(12, 12)
-test_model.load_state_dict(torch.load('pretrain_model/save_data_V5_model_06_18_18_47_48.pkl', map_location=torch.device('cpu')))
+test_model.load_state_dict(torch.load(os.path.join(parentdir, 'pretrain_model/save_data_V5_model_06_18_18_47_48.pkl'), map_location=torch.device('cpu')))
 o = env.reset()
 # env.render(mode='rgb_array')
 oma = o[48:60]
