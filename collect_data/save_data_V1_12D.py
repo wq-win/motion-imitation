@@ -264,6 +264,7 @@ def trajactory_ploter(position, arrow, index_range=(0, -1), dim=3, color_array=N
     set_axes_equal(ax)
 
     plt.show()
+    return ax
 
 
 if __name__ == '__main__':
