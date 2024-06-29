@@ -9,6 +9,8 @@ velocity divided by speed is normalized velocity. Use v_normalized to represent.
 The speed weight provided by each ring point is ma_weight.Here, the maximum weight is 1. So it's speed divided by maximum speed.
 """
 import copy
+import pickle
+import time
 
 from matplotlib import pyplot as plt
 import numpy as np
@@ -20,6 +22,8 @@ parentdir = os.path.dirname(currentdir)
 os.sys.path.insert(0, parentdir)
 from find_offset import all_offset
 
+
+NOWTIME = time.strftime("%m_%d", time.localtime())
 pace = [
     [0.00000, 0.00000, 0.43701, 0.49491, 0.53393, 0.49912, 0.46997, -0.12721, 0.07675, -0.95545, -
         0.25301, 0.18682, -1.14403, -0.19362, 0.14030, -0.77823, -0.09528, 0.05437, -0.97596],
@@ -243,7 +247,7 @@ def repulse(normal_direction, ma_array, point):
     return normal_displacement
 
 
-def trajactory_ploter(position, arrow, index_range=(0, -1), dim=3, color_array=None, x=0, y=1, z=2, u=0, v=1, w=2):
+def trajactory_ploter(position, arrow, index_range=(0, -1), dim=12, color_array=None, x=0, y=1, z=2, u=0, v=1, w=2):
     ax = plt.figure().add_subplot(projection='3d')
 
     # Make the grid
@@ -271,8 +275,9 @@ def trajactory_ploter(position, arrow, index_range=(0, -1), dim=3, color_array=N
 
 
 if __name__ == '__main__':
-    SAMPLE_POINT_NUMS = 10
-    ITER_TIMES = 100
+    SAMPLE_POINT_NUMS = 2
+    SAMPLE_POINT_NUMS = int(SAMPLE_POINT_NUMS)
+    ITER_TIMES = 1000
     input_list = []
     output_list = []
     color_list = []
@@ -289,10 +294,36 @@ if __name__ == '__main__':
             output_list.append(displacement)
         color = np.ones((ITER_TIMES, 3))
         color[:, 1] = np.linspace(0.8, 0, ITER_TIMES)
-        color[:, 0] = np.linspace(0.8, 0, ITER_TIMES)
+        # color[:, 0] = np.linspace(0.8, 0, ITER_TIMES)
         # color[:, 2] = np.linspace(0.8, 0, ITER_TIMES)
         color_list.append(color)
+        
+    # for _ in range(int(SAMPLE_POINT_NUMS // 2)):
+    #     point = sample_random_point_pi()
+    #     for i in range(ITER_TIMES):
+    #         input_list.append(copy.deepcopy(point))
+    #         normal_direction = calculate_point_normal_direction(pma, point)
+    #         normal_displacement = repulse(normal_direction, pma, point)
+    #         tangent_displacement = calculate_point_tangent_velocity(pma, point)
+    #         displacement =  tangent_displacement + normal_displacement #+  # + t_displacement
+    #         displacement = calculate_point_displacement(pma, point, displacement)
+    #         point += displacement * TIMESTEP
+    #         output_list.append(displacement)
+    #     color = np.ones((ITER_TIMES, 3))
+    #     # color[:, 1] = np.linspace(0.8, 0, ITER_TIMES)
+    #     color[:, 0] = np.linspace(0.8, 0, ITER_TIMES)
+    #     # color[:, 2] = np.linspace(0.8, 0, ITER_TIMES)
+    #     color_list.append(color)
+            
     input_array = np.vstack(input_list)
     output_array = np.vstack(output_list)
     color_array = np.vstack(color_list)
     trajactory_ploter(input_array, output_array, color_array=color_array)
+    
+    allresult = {'input': input_array, 'output': output_array}
+    file_path = f'dataset/save_data_V{NOWTIME}_{SAMPLE_POINT_NUMS}_{ITER_TIMES}.pkl'
+    directory = os.path.dirname(file_path)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    with open(file_path, 'wb') as f:
+        pickle.dump(allresult, f)

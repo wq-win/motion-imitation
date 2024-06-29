@@ -1,12 +1,13 @@
-import numpy as np
-from motion_imitation.envs import env_builder
-from mpi4py import MPI
 import os
 import inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 print(parentdir)
 os.sys.path.insert(0, parentdir)
+import numpy as np
+from motion_imitation.envs import env_builder
+from mpi4py import MPI
+
 
 
 pace = [
@@ -78,7 +79,7 @@ def main():
     p_ma[:, np.array([2, 5, 8, 11])] -= -1.25
     
     env.reset()
-    env.render(mode='rgb_array')
+    # env.render(mode='rgb_array')
 
     i = 38
     next_index = 1

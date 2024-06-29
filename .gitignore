@@ -7,7 +7,7 @@ dataset/o_a_collect_nums_1000.pkl
 /build/*
 *.*.pyc
 .gitignore
-
+collect_dataset/*
 test_model/test.py
 # collect_data/collect_test.py
 motion_imitation/utilities/__pycache__/motion_util.cpython-37.pyc

@@ -266,6 +266,7 @@ def trajactory_ploter(position, arrow, index_range=(0, -1), dim=3, color_array=N
 
 
 
+
 if __name__ == '__main__':
     start_index = sum(len(an_output) for an_output in output_list)
     for _ in tqdm.tqdm(range(int(SAMPLE_POINT_NUMS / 2))):
