@@ -55,7 +55,7 @@ def a_to_oa(a):
 
 def main():
     test_model = pretrain_oma_data_Net.Net(12, 12)
-    test_model.load_state_dict(torch.load('pretrain_model/save_data_V5_model_06_21_11_06_43.pkl', map_location=torch.device('cpu')))
+    test_model.load_state_dict(torch.load('pretrain_model/oma_model_06_26_16_51.pkl', map_location=torch.device('cpu')))
 
     env = env_builder.build_imitation_env(motion_files=["motion_imitation/data/motions/dog_pace.txt"],
                                         num_parallel_envs=MPI.COMM_WORLD.Get_size(),
