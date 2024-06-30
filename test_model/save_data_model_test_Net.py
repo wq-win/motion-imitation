@@ -2,16 +2,16 @@ import pickle
 from matplotlib import pyplot as plt
 import numpy as np
 import torch
-from motion_imitation.envs import env_builder
+
 from mpi4py import MPI
 import os
 import inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 print(parentdir)
-# os.sys.path.insert(0, parentdir)
+os.sys.path.insert(0, parentdir)
 from pretrain import pretrain_save_data_V1
-
+from motion_imitation.envs import env_builder
 
 input_list = []
 output_list = []
