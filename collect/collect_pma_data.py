@@ -1,8 +1,8 @@
 """
 ma means motor angle.
-Subtracting two points gives displacement. Use displacemnt to represent.
-displacement length is the distance between two points. Use displacemnt_norm to represent.
-displacemnt divided by distance is normalized displacement. Use displacement_normalized to represent.
+Subtracting two points gives displacement. Use displacement to represent.
+displacement length is the distance between two points. Use displacement_norm to represent.
+displacement divided by distance is normalized displacement. Use displacement_normalized to represent.
 displacement divided by time is velocity. Use v to represent.
 velocity length is the speed of the point. Use v_norm to represent.
 velocity divided by speed is normalized velocity. Use v_normalized to represent.
@@ -150,7 +150,7 @@ def sample_random_point_pi():
 
 
 def calculate_point_normal_direction(ma_array, point):
-    ma_v, ma_v_norm, ma_weight, point2ring_displacement, point2ring_nearest_displacement, point2ring_displacemnt_norm, point2ring_nearest_index, ring_nearest_index_v, ring_nearest_index_v_norm, distances_flag = new_func(ma_array, point)
+    ma_v, ma_v_norm, ma_weight, point2ring_displacement, point2ring_nearest_displacement, point2ring_displacement_norm, point2ring_nearest_index, ring_nearest_index_v, ring_nearest_index_v_norm, distances_flag = new_func(ma_array, point)
     if distances_flag:
         displacement_on_ring_projection = np.dot(point2ring_nearest_displacement, ring_nearest_index_v) / ring_nearest_index_v_norm
         point2ring_normal_vector = point2ring_nearest_displacement - displacement_on_ring_projection * ring_nearest_index_v / ring_nearest_index_v_norm
@@ -158,7 +158,7 @@ def calculate_point_normal_direction(ma_array, point):
         assert np.abs(theta) < 0.01, f'{theta} >= 0.01, the normal vector is not perpendicular to ring velocity'
         normal_direction = point2ring_normal_vector / np.linalg.norm(point2ring_normal_vector)
     else:
-        forces = ma_weight * point2ring_displacement / (point2ring_displacemnt_norm ** 2)
+        forces = ma_weight * point2ring_displacement / (point2ring_displacement_norm ** 2)
         force = np.sum(forces, axis=0) / forces.shape[0]
         normal_direction = force / np.linalg.norm(force)
     return normal_direction
@@ -166,11 +166,11 @@ def calculate_point_normal_direction(ma_array, point):
 def new_func(ma_array, point):
     ma_v, ma_v_norm, ma_weight = calculate_ring_velocity(ma_array)
     point2ring_displacement = ma_array - point
-    point2ring_displacemnt_norm = np.linalg.norm(
+    point2ring_displacement_norm = np.linalg.norm(
         point2ring_displacement, axis=1, keepdims=True)
     # x^(1/6)
-    # point2ring_displacemnt_norm = point2ring_displacemnt_norm**(1/6)
-    point2ring_nearest_index_temp = np.argmin(point2ring_displacemnt_norm)
+    # point2ring_displacement_norm = point2ring_displacement_norm**(1/6)
+    point2ring_nearest_index_temp = np.argmin(point2ring_displacement_norm)
     # if angle is greater than 90°, index + 1
     if np.dot(point2ring_displacement[point2ring_nearest_index_temp],
               ma_v[point2ring_nearest_index_temp]) < 0:
@@ -181,26 +181,26 @@ def new_func(ma_array, point):
     point2ring_nearest_displacement = point2ring_displacement[point2ring_nearest_index]
     ring_nearest_index_v = ma_v[point2ring_nearest_index]
     ring_nearest_index_v_norm = np.linalg.norm(ring_nearest_index_v)
-    distances_flag = point2ring_displacemnt_norm[point2ring_nearest_index] < ma_v_norm[
+    distances_flag = point2ring_displacement_norm[point2ring_nearest_index] < ma_v_norm[
         point2ring_nearest_index] * TIMESTEP * DISTANCEMENT_THRESHOLD
         
-    return ma_v, ma_v_norm,ma_weight,point2ring_displacement,point2ring_nearest_displacement,point2ring_displacemnt_norm,point2ring_nearest_index,ring_nearest_index_v,ring_nearest_index_v_norm,distances_flag
+    return ma_v, ma_v_norm,ma_weight,point2ring_displacement,point2ring_nearest_displacement,point2ring_displacement_norm,point2ring_nearest_index,ring_nearest_index_v,ring_nearest_index_v_norm,distances_flag
 
 
 def calculate_point_displacement(ma_array, point, displacement):
-    ma_v, ma_v_norm,ma_weight,point2ring_displacement,point2ring_nearest_displacement,point2ring_displacemnt_norm,point2ring_nearest_index,ring_nearest_index_v,ring_nearest_index_v_norm,distances_flag = new_func(ma_array, point)
+    ma_v, ma_v_norm,ma_weight,point2ring_displacement,point2ring_nearest_displacement,point2ring_displacement_norm,point2ring_nearest_index,ring_nearest_index_v,ring_nearest_index_v_norm,distances_flag = new_func(ma_array, point)
     displacement_normalize = displacement / np.linalg.norm(displacement)
     return displacement_normalize * ring_nearest_index_v_norm
 
 def calculate_point_tangent_velocity(ma_array, point, decay=10):  # 200
-    ma_v, ma_v_norm, ma_weight, point2ring_displacement, point2ring_nearest_displacement, point2ring_displacemnt_norm, point2ring_nearest_index, ring_nearest_index_v, ring_nearest_index_v_norm, distances_flag = new_func(ma_array, point)
+    ma_v, ma_v_norm, ma_weight, point2ring_displacement, point2ring_nearest_displacement, point2ring_displacement_norm, point2ring_nearest_index, ring_nearest_index_v, ring_nearest_index_v_norm, distances_flag = new_func(ma_array, point)
     
-    if point2ring_displacemnt_norm[point2ring_nearest_index] < 1e-4:
+    if point2ring_displacement_norm[point2ring_nearest_index] < 1e-4:
         return ma_v[point2ring_nearest_index]
 
-    forces = ma_v / (point2ring_displacemnt_norm ** 2) / (decay * point2ring_displacemnt_norm + 1)
+    forces = ma_v / (point2ring_displacement_norm ** 2) / (decay * point2ring_displacement_norm + 1)
     force = np.sum(forces, axis=0)
-    distance = np.sum(1 / (point2ring_displacemnt_norm ** 2), axis=0)
+    distance = np.sum(1 / (point2ring_displacement_norm ** 2), axis=0)
     velocity = force / distance
     # if np.linalg.norm(point2ring_nearest_displacement) < ma_v_norm[point2ring_nearest_index] * TIMESTEP * DISTANCEMENT_THRESHOLD:
     if distances_flag:
@@ -211,8 +211,8 @@ def calculate_point_tangent_velocity(ma_array, point, decay=10):  # 200
 
 
 def repulse(normal_direction, ma_array, point):
-    ma_v, ma_v_norm,ma_weight,point2ring_displacement,point2ring_nearest_displacement,point2ring_displacemnt_norm,point2ring_nearest_index,ring_nearest_index_v,ring_nearest_index_v_norm,distances_flag = new_func(ma_array, point)
-    speed = CONSTAN_FACTOR / np.sum(1 / point2ring_displacemnt_norm * ma_weight) / PACE_LEN
+    ma_v, ma_v_norm,ma_weight,point2ring_displacement,point2ring_nearest_displacement,point2ring_displacement_norm,point2ring_nearest_index,ring_nearest_index_v,ring_nearest_index_v_norm,distances_flag = new_func(ma_array, point)
+    speed = CONSTAN_FACTOR / np.sum(1 / point2ring_displacement_norm * ma_weight) / PACE_LEN
     normal_displacement = normal_direction * speed
     return normal_displacement
 
