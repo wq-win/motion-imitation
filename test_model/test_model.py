@@ -30,15 +30,29 @@ oma_list = []
 def oma_to_pma(oma):
     pma = copy.deepcopy(oma)
     # pma[np.array([3, 9])] = -oma[np.array([3, 9])]
+    # pma[np.array([0, 3, 6, 9])] -= 0.15
     pma[np.array([0, 6])] = -oma[np.array([0, 6])]
+    # pma[np.array([0, 3, 6, 9])] -= 0.3
     pma[np.array([1, 4, 7, 10])] -= 0.6
-    pma[np.array([2, 5, 8, 11])] -= -0.66
+    # pma[np.array([2, 5, 8, 11])] -= -0.66
+    pma[np.array([2, 5, 8, 11])] -= -0.75
     return pma
+
+def pma_to_oma(pma):
+    oma = copy.deepcopy(pma)
+    # pma[:, np.array([3, 9])] = -oma[:, np.array([3, 9])]
+
+    oma[:, np.array([0, 6])] = -oma[:, np.array([0, 6])]
+    # oma[:, np.array([0, 3, 6, 9])] += 0.15
+    oma[:, np.array([1, 4, 7, 10])] += 0.6
+    # oma[:, np.array([2, 5, 8, 11])] += -0.66
+    oma[:, np.array([2, 5, 8, 11])] += -0.75
+    return oma
 
 
 def oma_to_right_action(oma):
     action = copy.deepcopy(oma)
-    action[np.array([0, 3, 6, 9])] = -oma[np.array([0, 3, 6, 9])]
+    # action[np.array([0, 3, 6, 9])] = -oma[np.array([0, 3, 6, 9])] #这里是错的
     action[np.array([1, 4, 7, 10])] -= 0.67
     action[np.array([2, 5, 8, 11])] -= -1.25
     return action
