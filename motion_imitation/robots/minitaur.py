@@ -1400,6 +1400,7 @@ class Minitaur(object):
     return proc_action
 
   def _BuildActionFilter(self):
+      # Trick
     sampling_rate = 1 / (self.time_step * self._action_repeat)
     num_joints = self.GetActionDimension()
     a_filter = action_filter.ActionFilterButter(sampling_rate=sampling_rate,
