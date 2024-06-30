@@ -88,24 +88,29 @@ def main():
     o = env.reset()
     error_factor = 0
     n_iter = 2
-    final_one = True
+    ITER_FRACTER = 1/n_iter
+    final_one = False
     transition_error = False
+    action = np.zeros(12)
     for i in tqdm.tqdm(range(500)):
-        if transition_error and error_factor<1:
-            error_factor = i*0.01
-        else:
-            error_factor = 1
+        # if transition_error and error_factor<1:
+        #     error_factor = i*0.01
+        # else:
+        #     error_factor = 1
         tqdm.tqdm.write(str(error_factor))
         oma = o[48:60]
+        print("action")
+        print(action)
+        print(oma)
         pma = oma_to_pma(oma)
         pma = torch.tensor(pma, dtype=torch.float32)
         joint_velocity = test_model(pma)
         joint_velocity_array = np.zeros((n_iter, list(joint_velocity.shape)[0]))
         joint_velocity_array[0, :] = joint_velocity.detach().numpy()
 
-        for i in range(n_iter-1):
-            joint_velocity = test_model(pma+joint_velocity*TIMESTEP)
-            joint_velocity_array[i+1, :] = joint_velocity.detach().numpy()
+        for i_iter in range(n_iter-1):
+            joint_velocity = test_model(pma+joint_velocity*TIMESTEP*ITER_FRACTER)
+            joint_velocity_array[i_iter+1, :] = joint_velocity.detach().numpy()
         joint_velocity_array[:, np.array([0, 6])] = -joint_velocity_array[:, np.array([0, 6])]
         # joint_velocity = joint_velocity.detach().numpy()
         # joint_velocity[np.array([0, 6])] = -joint_velocity[np.array([0, 6])]
@@ -120,6 +125,11 @@ def main():
 
         next_oma = oma + joint_velocity_average * TIMESTEP * DISPLACEMENT_RATE + error_between_target_and_result(o, True) * error_factor
         action = oma_to_right_action(next_oma)
+        # action = oma_to_right_action(oma)
+        # # action = [0.003*i for _ in range(12)]
+        # action = np.zeros(12)
+        # action[np.array([0,6])]=0.003*i
+        # action[np.array([3, 9])] = -0.003 * i
         action_list.append(action)
         o, r, d, _ = env.step(action)
         oma_list.append(o[48:60])
