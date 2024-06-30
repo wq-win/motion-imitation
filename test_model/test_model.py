@@ -69,7 +69,8 @@ def main():
                                         num_parallel_envs=MPI.COMM_WORLD.Get_size(),
                                         mode="test",
                                         enable_randomizer=False,
-                                        enable_rendering=True)
+                                        enable_rendering=True,
+                                        if_trajectory_generator=True)
     o = env.reset()
     error_factor = 0
     n_iter = 2

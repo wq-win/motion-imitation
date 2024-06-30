@@ -79,6 +79,7 @@ def build_laikago_env( motor_control_mode, enable_rendering):
 def build_imitation_env(motion_files, num_parallel_envs, mode,
                         enable_randomizer, enable_rendering,
                         robot_class=laikago.Laikago,
+                        if_trajectory_generator=True,
                         trajectory_generator=simple_openloop.LaikagoPoseOffsetGenerator(action_limit=laikago.UPPER_BOUND)):
   assert len(motion_files) > 0
 
@@ -113,8 +114,9 @@ def build_imitation_env(motion_files, num_parallel_envs, mode,
                                             env_randomizers=randomizers, robot_sensors=sensors, task=task)
 
   env = observation_dictionary_to_array_wrapper.ObservationDictionaryToArrayWrapper(env)
-  env = trajectory_generator_wrapper_env.TrajectoryGeneratorWrapperEnv(env,
-                                                                       trajectory_generator=trajectory_generator)
+  if if_trajectory_generator:
+      env = trajectory_generator_wrapper_env.TrajectoryGeneratorWrapperEnv(env,
+                                                                           trajectory_generator=trajectory_generator)
 
   if mode == "test":
       curriculum_episode_length_start = curriculum_episode_length_end
