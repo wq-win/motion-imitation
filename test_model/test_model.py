@@ -113,9 +113,35 @@ def main():
         #     o = env.reset()
 
     env.close()
-    
+    return test_model
+
+def net_iter(net):
+    input_list = []
+    output_list = []
+    for i in range(4):
+        oma = np.random.uniform(-np.pi/2, np.pi/2, size=12)
+        for _ in range(100):
+            input_list.append(oma)
+            oma = torch.tensor(oma, dtype=torch.float32)
+            displacement = net(oma)
+            displacement = displacement.detach().numpy()
+            output_list.append(displacement)
+            oma += displacement * TIMESTEP
+    input_array = np.vstack(input_list)
+    output_array  = np.vstack(output_list)
+    return input_array, output_array
+
+def trajectory_ploter(data, labels=[], axis=[0, 1, 2], ax=None):
+    if ax is None:
+        ax = plt.figure().add_subplot(projection='3d')
+
+    for a_data, a_label in zip(data, labels):
+        ax.plot(a_data[:, axis[0]], a_data[:, axis[1]], a_data[:, axis[2]], label=a_label)
+    ax.legend()
+    return ax
+
 if __name__ == '__main__':
-    main()
+    test_model = main()
     action_list = np.array(action_list)
     without_error_action_list = np.array(without_error_action_list)
     oma_list = np.array(oma_list)
@@ -139,26 +165,30 @@ if __name__ == '__main__':
     input = np.array(allresult['input'])
     output = np.array(allresult['output'])
     print(input.shape)
-    from collect_data.save_data_V1_12D import trajactory_ploter
+    input = pma_to_oma(input)
+    output[:, np.array([0, 6])] = -output[:, np.array([0, 6])]
+    from collect_data.save_data_V1_12D import quiver_ploter
     # for i in range(input.shape[0]//1000 // 20):
     #     trajactory_ploter(input, output, index_range=[i * 1000, (i + 1) * 1000], dim=num_joints, color_array=None,  x=0, y=1, z=2, u=0, v=1, w=2)
-    ax = trajactory_ploter(input, output, index_range=[0, 1000], dim=input.shape[1], color_array=None, x=0, y=1, z=2, u=0,
-                           v=1, w=2)
 
-    # ax = plt.figure().add_subplot(projection='3d')
 
-    x1= action_list[:, 0]
-    y1= action_list[:, 1]
-    z1= action_list[:, 2]
-    ax.plot(x1, y1, z1, label='action')
-    x2= without_error_action_list[:, 0]
-    y2= without_error_action_list[:, 1]
-    z2= without_error_action_list[:, 2]
-    ax.plot(x2, y2, z2, label='without_error_action')
-    x3= oma_list[:, 0]
-    y3= oma_list[:, 1]
-    z3= oma_list[:, 2]
-    ax.plot(x3, y3, z3, label='oma')
-    ax.legend()
+    input_array, output_array = net_iter(test_model)
+    input_array = pma_to_oma(input_array)
+    output_array[:, np.array([0, 6])] = -output_array[:, np.array([0, 6])]
+    ax_list = []
+    for i in range(4):
+        start_index = 3*i
+        ax = quiver_ploter(input, output, index_range=[0, 1000], dim=input.shape[1], color_array=None,
+                           x=start_index, y=start_index+1, z=start_index+2,
+                           u=start_index, v=start_index+1, w=start_index+2)
+        ax_list.append(ax)
+        ax_list[i] = trajectory_ploter([action_list, without_error_action_list, oma_list],
+                              labels=['action', 'without_error_action', 'oma'],
+                              axis=[start_index, start_index+1, start_index+2], ax=ax_list[i])
+        ax_list[i] = quiver_ploter(input_array, output_array, index_range=[0, 1000], dim=input.shape[1], color_array=[0,0,0],
+                                   x=start_index, y=start_index + 1, z=start_index + 2,
+                                   u=start_index, v=start_index + 1, w=start_index + 2,
+                                   ax=ax_list[i])
+
 
     plt.show()

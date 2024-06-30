@@ -240,8 +240,9 @@ def repulse(direction, distances, mass_weight):
     return displacement
 
 
-def trajactory_ploter(position, arrow, index_range=(0, -1), dim=3, color_array=None, x=0, y=1, z=2, u=0, v=1, w=2):
-    ax = plt.figure().add_subplot(projection='3d')
+def quiver_ploter(position, arrow, index_range=(0, -1), dim=3, color_array=None, x=0, y=1, z=2, u=0, v=1, w=2, ax=None):
+    if ax is None:
+        ax = plt.figure().add_subplot(projection='3d')
 
     # Make the grid
     X = position[index_range[0]:index_range[1], x]
@@ -315,14 +316,14 @@ if __name__ == '__main__':
     print(np.max(np.linalg.norm(output_array[start_index:], axis=1)))
     color_array = np.vstack(color_list)
 
-    trajactory_ploter(input_array, output_array, index_range=[0000, 1000], dim=JOINT_NUMS, color_array=color_array, x=0,
-                      y=1, z=2, u=0, v=1, w=2)
-    trajactory_ploter(input_array, output_array, index_range=[0000, 1000], dim=JOINT_NUMS, color_array=color_array, x=3,
-                      y=4, z=5, u=3, v=4, w=5)
-    trajactory_ploter(input_array, output_array, index_range=[0000, 1000], dim=JOINT_NUMS, color_array=color_array, x=6,
-                      y=7, z=8, u=6, v=7, w=8)
-    trajactory_ploter(input_array, output_array, index_range=[0000, 1000], dim=JOINT_NUMS, color_array=color_array, x=9,
-                      y=10, z=11, u=9, v=10, w=11)
+    quiver_ploter(input_array, output_array, index_range=[0000, 1000], dim=JOINT_NUMS, color_array=color_array, x=0,
+                  y=1, z=2, u=0, v=1, w=2)
+    quiver_ploter(input_array, output_array, index_range=[0000, 1000], dim=JOINT_NUMS, color_array=color_array, x=3,
+                  y=4, z=5, u=3, v=4, w=5)
+    quiver_ploter(input_array, output_array, index_range=[0000, 1000], dim=JOINT_NUMS, color_array=color_array, x=6,
+                  y=7, z=8, u=6, v=7, w=8)
+    quiver_ploter(input_array, output_array, index_range=[0000, 1000], dim=JOINT_NUMS, color_array=color_array, x=9,
+                  y=10, z=11, u=9, v=10, w=11)
     allresult = {'input': input_array, 'output': output_array}
     file_path = f'dataset/save_data_V{NOWTIME}_{SAMPLE_POINT_NUMS}_{ITER_TIMES}.pkl'
     directory = os.path.dirname(file_path)
