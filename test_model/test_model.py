@@ -92,6 +92,8 @@ def main():
     final_one = False
     transition_error = False
     action = np.zeros(12)
+    max_kp = 300
+    transition_kp=True
     for i in tqdm.tqdm(range(500)):
         # if transition_error and error_factor<1:
         #     error_factor = i*0.01
@@ -131,6 +133,14 @@ def main():
         # action[np.array([0,6])]=0.003*i
         # action[np.array([3, 9])] = -0.003 * i
         action_list.append(action)
+        motor_kps, motor_kds = env._gym_env._gym_env._gym_env.robot.GetMotorGains()
+        if transition_kp and motor_kps[0]<max_kp:
+            time_since_reset =  env._gym_env._gym_env._gym_env.robot.GetTimeSinceReset()
+            motor_kps[:] = 220+(max_kp-220)*time_since_reset
+        else:
+            motor_kps[:] = max_kp
+        motor_kps = motor_kps
+        env._gym_env._gym_env._gym_env.robot.SetMotorGains(motor_kps, motor_kds)
         o, r, d, _ = env.step(action)
         oma_list.append(o[48:60])
         # if d:
