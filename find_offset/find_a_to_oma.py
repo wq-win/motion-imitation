@@ -1,16 +1,16 @@
 import inspect
 import os
-from matplotlib import pyplot as plt
-import numpy as np
-from motion_imitation.envs import env_builder as env_builder
-from mpi4py import MPI
-import tensorflow as tf
-from motion_imitation.learning import imitation_policies as imitation_policies
-from motion_imitation.learning import ppo_imitation as ppo_imitation
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 os.sys.path.insert(0, parentdir)
 
+from matplotlib import pyplot as plt
+import numpy as np
+from mpi4py import MPI
+import tensorflow as tf
+from motion_imitation.learning import imitation_policies as imitation_policies
+from motion_imitation.learning import ppo_imitation as ppo_imitation
+from motion_imitation.envs import env_builder as env_builder
 
 a_list = []
 oma_list = []
