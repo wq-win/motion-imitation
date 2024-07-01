@@ -210,14 +210,21 @@ if __name__ == '__main__':
     input_array = pma_to_oma(input_array)
     output_array[:, np.array([0, 6])] = -output_array[:, np.array([0, 6])]
     ax_list = []
+    
+    with open('test_model/ppo_track.pkl', 'rb') as f:
+        allresult = pickle.load(f)
+    ppo_position = np.array(allresult['input'])
+    ppo_direction = np.array(allresult['output'])    
+    
+    
     for i in range(4):
         start_index = 3*i
         ax = quiver_ploter(input, output, index_range=[0, 1000], dim=input.shape[1], color_array=None,
                            x=start_index, y=start_index+1, z=start_index+2,
                            u=start_index, v=start_index+1, w=start_index+2)
         ax_list.append(ax)
-        ax_list[i] = trajectory_ploter([action_list, without_error_action_list, oma_list],
-                              labels=['action', 'without_error_action', 'oma'],
+        ax_list[i] = trajectory_ploter([action_list, without_error_action_list, oma_list, ppo_position],
+                              labels=['action', 'without_error_action', 'oma', 'ppo_track'],
                               axis=[start_index, start_index+1, start_index+2], ax=ax_list[i])
         ax_list[i] = quiver_ploter(input_array, output_array, index_range=[0, 1000], dim=input.shape[1], color_array=[0,0,0],
                                    x=start_index, y=start_index + 1, z=start_index + 2,
