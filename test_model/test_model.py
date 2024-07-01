@@ -36,6 +36,7 @@ def oma_to_pma(oma):
     pma[np.array([1, 4, 7, 10])] -= 0.6
     # pma[np.array([2, 5, 8, 11])] -= -0.66
     pma[np.array([2, 5, 8, 11])] -= -0.75
+    pma[np.array([2, 5, 8, 11])] -= -0.1
     return pma
 
 def pma_to_oma(pma):
@@ -216,6 +217,9 @@ if __name__ == '__main__':
     ppo_position = np.array(allresult['input'])
     ppo_direction = np.array(allresult['output'])    
     
+    oma_list[:,np.array([0, 3, 6, 9])] += 0.02
+    oma_list[:,np.array([1, 4, 7, 10])] += 0.03
+    oma_list[:,np.array([2, 5, 8, 11])] += 0.1
     
     for i in range(4):
         start_index = 3*i
@@ -223,8 +227,8 @@ if __name__ == '__main__':
                            x=start_index, y=start_index+1, z=start_index+2,
                            u=start_index, v=start_index+1, w=start_index+2)
         ax_list.append(ax)
-        ax_list[i] = trajectory_ploter([action_list, without_error_action_list, oma_list, ppo_position],
-                              labels=['action', 'without_error_action', 'oma', 'ppo_track'],
+        ax_list[i] = trajectory_ploter([ oma_list, ppo_position],
+                              labels=[ 'oma', 'ppo_track'],
                               axis=[start_index, start_index+1, start_index+2], ax=ax_list[i])
         ax_list[i] = quiver_ploter(input_array, output_array, index_range=[0, 1000], dim=input.shape[1], color_array=[0,0,0],
                                    x=start_index, y=start_index + 1, z=start_index + 2,
