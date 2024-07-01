@@ -8,7 +8,7 @@ os.sys.path.insert(0, parentdir)
 
 from matplotlib import pyplot as plt
 import numpy as np
-from collect import collect_oma_data
+from collect import collect_pma_data
 import test_pma
 
 
@@ -53,16 +53,16 @@ pace = [
   [0.67005, 0.00126, 0.43824, 0.51299, 0.51174, 0.49342, 0.48113, -0.12047, 0.05387, -0.95210, -0.21892, 0.23998, -1.07604, -0.24585, 0.10828, -0.79239, -0.08403, 0.22582, -1.04134],
   [0.68773, 0.00000, 0.43701, 0.50903, 0.51581, 0.49242, 0.48203, -0.12285, 0.06815, -0.95073, -0.24299, 0.20340, -1.12756, -0.24815, 0.13683, -0.78085, -0.07723, 0.11886, -1.01564]
 ]
-JOINT_INDEX_START =  collect_oma_data.JOINT_INDEX_START 
-JOINT_NUMS =  collect_oma_data.JOINT_NUMS
-TIMESTEP = collect_oma_data.TIMESTEP
+JOINT_INDEX_START =  collect_pma_data.JOINT_INDEX_START 
+JOINT_NUMS =  collect_pma_data.JOINT_NUMS
+TIMESTEP = collect_pma_data.TIMESTEP
 joint_dict = test_pma.joint_dict
 
  
 if __name__ == '__main__':
     
     pma = np.array(pace)[:, JOINT_INDEX_START: JOINT_INDEX_START + JOINT_NUMS]
-    pma_v, _, _ = collect_oma_data.calculate_ring_velocity(pma)
+    pma_v, _, _ = collect_pma_data.calculate_ring_velocity(pma)
     test_pma.ploter(pma, pma_v, False, *joint_dict['rightfront'])
     test_pma.ploter(pma, pma_v, False, *joint_dict['leftfront'])
     test_pma.ploter(pma, pma_v, False, *joint_dict['rightback'])
