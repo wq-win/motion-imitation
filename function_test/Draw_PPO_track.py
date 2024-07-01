@@ -1,5 +1,6 @@
 import os
 import inspect
+import pickle
 currentdir = os.path.dirname(os.path.abspath(
     inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
@@ -98,3 +99,10 @@ if __name__ == "__main__":
     ppo_ma_track_array = np.array(ppo_ma_track_list)
     ma_v, ma_v_norm, ma_weight = collect_pma_data.calculate_ring_velocity(ppo_ma_track_array)
     test_pma.ploter(ppo_ma_track_array, ma_v)
+    allresult = {'input': ppo_ma_track_array, 'output': ma_v, }
+    file_path = f'function_test/ppo_track.pkl'
+    directory = os.path.dirname(file_path)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    with open(file_path, 'wb') as f:
+        pickle.dump(allresult, f)
