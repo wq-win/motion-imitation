@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 
 
 NOWTIME = time.strftime("%m_%d_%H_%M", time.localtime())
-BATCH_SIZE = 128
+BATCH_SIZE = 64
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Net(nn.Module):

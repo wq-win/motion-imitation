@@ -1,6 +1,7 @@
 import os
 import inspect
 import pickle
+import time
 currentdir = os.path.dirname(os.path.abspath(
     inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
@@ -19,7 +20,7 @@ from collect_test import test_pma
 TIMESTEPS_PER_ACTORBATCH = 4096
 OPTIM_BATCHSIZE = 256
 ppo_ma_track_list = []
-
+NOWTIME = time.strftime("%m_%d", time.localtime())
 
 def build_model(env, num_procs, timesteps_per_actorbatch, optim_batchsize, output_dir):
     policy_kwargs = {
@@ -55,8 +56,11 @@ def test(model, env, num_episodes=None):
     episode_length = 600
     collect_episodes = 1
     i = 0
+    point = collect_pma_data.sample_random_point_pi()
+    o[48:60] = point
     while True:
         print(f'i:{i}/{episode_length * collect_episodes}', end="\r")
+               
         ppo_ma_track_list.append(o[48:60])
         a, _ = model.predict(o, deterministic=True)
         o, r, done, info = env.step(a)
@@ -100,7 +104,7 @@ if __name__ == "__main__":
     ma_v, ma_v_norm, ma_weight = collect_pma_data.calculate_ring_velocity(ppo_ma_track_array)
     test_pma.ploter(ppo_ma_track_array, ma_v)
     allresult = {'input': ppo_ma_track_array, 'output': ma_v, }
-    file_path = f'function_test/ppo_track.pkl'
+    file_path = f'function_test/ppo_track_{NOWTIME}.pkl'
     directory = os.path.dirname(file_path)
     if not os.path.exists(directory):
         os.makedirs(directory)

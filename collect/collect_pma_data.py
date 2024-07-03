@@ -111,7 +111,7 @@ JOINT_NUMS = 12
 TIMESTEP = 1 / 30
 NEXT_INDEX = 1
 DISTANCEMENT_THRESHOLD = 2
-CONSTAN_FACTOR = 2000 
+CONSTANT_FACTOR = 2000 
 
 
 def calculate_ring_velocity(ma_array):
@@ -212,7 +212,7 @@ def calculate_point_tangent_velocity(ma_array, point, decay=10):  # 200
 
 def repulse(normal_direction, ma_array, point):
     ma_v, ma_v_norm,ma_weight,point2ring_displacement,point2ring_nearest_displacement,point2ring_displacement_norm,point2ring_nearest_index,ring_nearest_index_v,ring_nearest_index_v_norm,distances_flag = new_func(ma_array, point)
-    speed = CONSTAN_FACTOR / np.sum(1 / point2ring_displacement_norm * ma_weight) / PACE_LEN
+    speed = CONSTANT_FACTOR / np.sum(1 / point2ring_displacement_norm * ma_weight) / PACE_LEN
     normal_displacement = normal_direction * speed
     return normal_displacement
 
