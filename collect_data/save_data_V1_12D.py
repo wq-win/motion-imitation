@@ -237,7 +237,7 @@ def calculate_point_tangent_velocity(distances, point2ring_nearest_index, ring_n
 def repulse(direction, distances, mass_weight):
     ring_point_nums = distances.shape[0]
     # speed = CONSTAN_FACTOR / np.sum(1 / distances * mass_weight) / ring_point_nums
-    speed = 1.0 * np.min(distances)
+    speed = 0.3 * np.min(distances)
     displacement = direction * speed
     return displacement
 
