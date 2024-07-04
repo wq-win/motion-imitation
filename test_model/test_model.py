@@ -36,6 +36,7 @@ def oma_to_pma(oma):
     pma[np.array([1, 4, 7, 10])] -= 0.6
     # pma[np.array([2, 5, 8, 11])] -= -0.66
     pma[np.array([2, 5, 8, 11])] -= -0.75
+    pma[np.array([2, 5, 8, 11])] -= -0.1
     return pma
 
 def pma_to_oma(pma):
@@ -77,9 +78,9 @@ def a_to_oa(a):
 
 def main():
     test_model = pretrain_save_data_V1.Net(12, 12)
-    test_model.load_state_dict(torch.load(os.path.join(parentdir,'pretrain_model/save_data_V5_model_06_21_11_06_43.pkl'), map_location=torch.device('cpu')))
+    test_model.load_state_dict(torch.load(os.path.join(parentdir,'pretrain_model/trot_model_07_04_13_01.pkl'), map_location=torch.device('cpu')))
 
-    env = env_builder.build_imitation_env(motion_files=[os.path.join(parentdir,"motion_imitation/data/motions/dog_pace.txt")],
+    env = env_builder.build_imitation_env(motion_files=[os.path.join(parentdir,"motion_imitation/data/motions/dog_trot.txt")],
                                         num_parallel_envs=MPI.COMM_WORLD.Get_size(),
                                         mode="test",
                                         enable_randomizer=False,
@@ -192,7 +193,7 @@ if __name__ == '__main__':
     plt.show()
 
     # with open('dataset/save_data_V4_100000_10.pkl', 'rb') as f:
-    with open(os.path.join(parentdir, 'collect_data/dataset/save_data_V06_29_10_100.pkl'), 'rb') as f:
+    with open(os.path.join(parentdir, 'collect_data/dataset/trot_data_V_07_04_10_100.pkl'), 'rb') as f:
     # with open(os.path.join(parentdir, 'collect_data/dataset/save_data_V5_model_06_21_11_06_43.pkl'), 'rb') as f:
         allresult = pickle.load(f)
 
@@ -210,14 +211,24 @@ if __name__ == '__main__':
     input_array = pma_to_oma(input_array)
     output_array[:, np.array([0, 6])] = -output_array[:, np.array([0, 6])]
     ax_list = []
+    
+    with open('test_model/ppo_track.pkl', 'rb') as f:
+        allresult = pickle.load(f)
+    ppo_position = np.array(allresult['input'])
+    ppo_direction = np.array(allresult['output'])    
+    
+    # oma_list[:,np.array([0, 3, 6, 9])] += 0.02
+    # oma_list[:,np.array([1, 4, 7, 10])] += 0.03
+    # oma_list[:,np.array([2, 5, 8, 11])] += 0.1
+    
     for i in range(4):
         start_index = 3*i
         ax = quiver_ploter(input, output, index_range=[0, 1000], dim=input.shape[1], color_array=None,
                            x=start_index, y=start_index+1, z=start_index+2,
                            u=start_index, v=start_index+1, w=start_index+2)
         ax_list.append(ax)
-        ax_list[i] = trajectory_ploter([action_list, without_error_action_list, oma_list],
-                              labels=['action', 'without_error_action', 'oma'],
+        ax_list[i] = trajectory_ploter([ oma_list, ppo_position],
+                              labels=[ 'oma', 'ppo_track'],
                               axis=[start_index, start_index+1, start_index+2], ax=ax_list[i])
         ax_list[i] = quiver_ploter(input_array, output_array, index_range=[0, 1000], dim=input.shape[1], color_array=[0,0,0],
                                    x=start_index, y=start_index + 1, z=start_index + 2,
