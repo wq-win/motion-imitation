@@ -169,19 +169,20 @@ def sample_random_point_pi():
     return point
 
 
-def calculate_point_normal_direction(point, mass_weight):
+def calculate_point_normal_direction(point, mass_weight, if_next=True):
     point2ring_displacement = p_motor_angle - point
     point2ring_distances = np.linalg.norm(point2ring_displacement, axis=1, keepdims=True)
     # x^(1/6)
     # point2ring_distances = point2ring_distances**(1/6)
     point2ring_nearest_index_temp = np.argmin(point2ring_distances)
-    if np.dot(point2ring_displacement[point2ring_nearest_index_temp],
+    if if_next and np.dot(point2ring_displacement[point2ring_nearest_index_temp],
               p_motor_angle_v[point2ring_nearest_index_temp]) < 0:
         point2ring_nearest_index = point2ring_nearest_index_temp + 1
         if point2ring_nearest_index >= pace_len:
             point2ring_nearest_index = 0
     else:
         point2ring_nearest_index = point2ring_nearest_index_temp
+
     ring_nearest_index_v = p_motor_angle_v[point2ring_nearest_index]
     ring_nearest_index_v_norm = np.linalg.norm(ring_nearest_index_v)
     distances_flag = point2ring_distances[point2ring_nearest_index] < p_motor_angle_v_norm[point2ring_nearest_index] * TIMESTEP * DISTANCEMENT_THRESHOLD
@@ -235,7 +236,8 @@ def calculate_point_tangent_velocity(distances, point2ring_nearest_index, ring_n
 
 def repulse(direction, distances, mass_weight):
     ring_point_nums = distances.shape[0]
-    speed = CONSTAN_FACTOR / np.sum(1 / distances * mass_weight) / ring_point_nums
+    # speed = CONSTAN_FACTOR / np.sum(1 / distances * mass_weight) / ring_point_nums
+    speed = 1.0 * np.min(distances)
     displacement = direction * speed
     return displacement
 
@@ -275,7 +277,7 @@ if __name__ == '__main__':
         for i in range(ITER_TIMES):
             input_list.append(copy.deepcopy(point))
             normal_direction, point2ring_distances, point2ring_nearest_index, ring_nearest_index_v, point2ring_nearest_displacement, distances_flag = calculate_point_normal_direction(
-                point, mass_weight)
+                point, mass_weight, if_next=False)
             
             normal_displacement = repulse(normal_direction, point2ring_distances, mass_weight)
             tangent_displacement = calculate_point_tangent_velocity(point2ring_distances, point2ring_nearest_index,
@@ -296,7 +298,7 @@ if __name__ == '__main__':
         for i in range(ITER_TIMES):
             input_list.append(copy.deepcopy(point))
             normal_direction, point2ring_distances, point2ring_nearest_index, ring_nearest_index_v, point2ring_nearest_displacement, distances_flag = calculate_point_normal_direction(
-                point, mass_weight)
+                point, mass_weight, if_next=False)
             normal_displacement = repulse(normal_direction, point2ring_distances, mass_weight)
             tangent_displacement = calculate_point_tangent_velocity(point2ring_distances, point2ring_nearest_index,
                                                                     ring_nearest_index_v,
@@ -316,13 +318,15 @@ if __name__ == '__main__':
     print(np.max(np.linalg.norm(output_array[start_index:], axis=1)))
     color_array = np.vstack(color_list)
 
-    quiver_ploter(input_array, output_array, index_range=[0000, 1000], dim=JOINT_NUMS, color_array=color_array, x=0,
+    plot_start = start_index-pace_len
+    plot_end = plot_start+1000
+    quiver_ploter(input_array, output_array, index_range=[plot_start, plot_end], dim=JOINT_NUMS, color_array=color_array[plot_start:plot_end, :], x=0,
                   y=1, z=2, u=0, v=1, w=2)
-    quiver_ploter(input_array, output_array, index_range=[0000, 1000], dim=JOINT_NUMS, color_array=color_array, x=3,
+    quiver_ploter(input_array, output_array, index_range=[plot_start, plot_end], dim=JOINT_NUMS, color_array=color_array[plot_start:plot_end, :], x=3,
                   y=4, z=5, u=3, v=4, w=5)
-    quiver_ploter(input_array, output_array, index_range=[0000, 1000], dim=JOINT_NUMS, color_array=color_array, x=6,
+    quiver_ploter(input_array, output_array, index_range=[plot_start, plot_end], dim=JOINT_NUMS, color_array=color_array[plot_start:plot_end, :], x=6,
                   y=7, z=8, u=6, v=7, w=8)
-    quiver_ploter(input_array, output_array, index_range=[0000, 1000], dim=JOINT_NUMS, color_array=color_array, x=9,
+    quiver_ploter(input_array, output_array, index_range=[plot_start, plot_end], dim=JOINT_NUMS, color_array=color_array[plot_start:plot_end, :], x=9,
                   y=10, z=11, u=9, v=10, w=11)
     allresult = {'input': input_array, 'output': output_array}
     file_path = f'dataset/save_data_V{NOWTIME}_{SAMPLE_POINT_NUMS}_{ITER_TIMES}.pkl'
@@ -332,3 +336,4 @@ if __name__ == '__main__':
     print(os.path.join(directory, file_path))
     with open(file_path, 'wb') as f:
         pickle.dump(allresult, f)
+    plt.show()
