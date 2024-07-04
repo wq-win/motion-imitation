@@ -12,3 +12,5 @@ collect_dataset/oma_data_V_06_26_100000_100.pkl
 
 test_model/test.py
 # collect_data/collect_test.py
+collect_dataset/spin_data_V_07_04_100000_100.pkl
+trot/dataset/trot_data_V_07_04_100000_100.pkl

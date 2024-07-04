@@ -1,26 +1,22 @@
 import os
 import inspect
 import pickle
-import time
 currentdir = os.path.dirname(os.path.abspath(
     inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 os.sys.path.insert(0, parentdir)
 
-from stable_baselines.common.callbacks import CheckpointCallback
 from motion_imitation.learning import ppo_imitation as ppo_imitation
 from motion_imitation.learning import imitation_policies as imitation_policies
 from motion_imitation.envs import env_builder as env_builder
 import tensorflow as tf
 import numpy as np
 from mpi4py import MPI
-from collect import collect_pma_data
-from collect_test import test_pma
+
 
 TIMESTEPS_PER_ACTORBATCH = 4096
 OPTIM_BATCHSIZE = 256
-ppo_ma_track_list = []
-NOWTIME = time.strftime("%m_%d", time.localtime())
+
 
 def build_model(env, num_procs, timesteps_per_actorbatch, optim_batchsize, output_dir):
     policy_kwargs = {
@@ -52,18 +48,18 @@ def build_model(env, num_procs, timesteps_per_actorbatch, optim_batchsize, outpu
 
 
 def test(model, env, num_episodes=None):
+    o_list = []
+    a_list = []
     o = env.reset()
-    # env._gym_env._gym_env._gym_env.task._set_state()
     episode_length = 600
     collect_episodes = 1
     i = 0
-    # point = collect_pma_data.sample_random_point_pi()
     
     while True:
-        print(f'i:{i}/{episode_length * collect_episodes}', end="\r")
-        # o[48:60] = point * 0       
-        ppo_ma_track_list.append(o[48:60])
+        print(f'i:{i} / {episode_length * collect_episodes}', end="\r")
         a, _ = model.predict(o, deterministic=True)
+        o_list.append(o)
+        a_list.append(a)
         o, r, done, info = env.step(a)
         if done:
             o = env.reset()
@@ -71,7 +67,13 @@ def test(model, env, num_episodes=None):
             break  
         i += 1  
     env.close()
-
+    allresult = {'o': o_list, 'a': a_list}
+    file_path = f'trot/dataset/collect_a_oma_data.pkl'
+    directory = os.path.dirname(file_path)
+    if not os.path.exists(directory):
+      os.makedirs(directory)
+    with open(file_path, 'wb') as f:
+        pickle.dump(allresult, f)
 
 def main():
 
@@ -79,7 +81,7 @@ def main():
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
     env = env_builder.build_imitation_env(
-        motion_files=["motion_imitation/data/motions/dog_spin.txt"],
+        motion_files=["motion_imitation/data/motions/dog_trot.txt"],
         num_parallel_envs=num_procs,
         mode="test",
         enable_randomizer=True,
@@ -94,20 +96,10 @@ def main():
         output_dir="output",
     )
 
-    model.load_parameters("motion_imitation/data/policies/dog_spin.zip")
+    model.load_parameters("motion_imitation/data/policies/dog_trot.zip")
 
     test(model=model, env=env, num_episodes=1000)
 
 
 if __name__ == "__main__":
     main()
-    ppo_ma_track_array = np.array(ppo_ma_track_list)
-    ma_v, ma_v_norm, ma_weight = collect_pma_data.calculate_ring_velocity(ppo_ma_track_array)
-    test_pma.ploter(ppo_ma_track_array, ma_v)
-    allresult = {'input': ppo_ma_track_array, 'output': ma_v, }
-    file_path = f'function_test/ppo_track_{NOWTIME}.pkl'
-    directory = os.path.dirname(file_path)
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-    with open(file_path, 'wb') as f:
-        pickle.dump(allresult, f)
