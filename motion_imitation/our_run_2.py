@@ -24,7 +24,7 @@ logging.getLogger().setLevel(logging.ERROR)
 
 
 NOWTIME = time.strftime("%Y_%m_%d_%H_%M_%S", time.localtime())
-
+NOWTIME_M_D = time.strftime("%m_%d", time.localtime())
 TIMESTEPS_PER_ACTORBATCH = 4096
 OPTIM_BATCHSIZE = 256
 ENABLE_ENV_RANDOMIZER = True
@@ -94,11 +94,11 @@ def build_model(env, num_procs, timesteps_per_actorbatch, optim_batchsize, outpu
     return model
 
 
-def train(model, env, total_timesteps, output_dir="", int_save_freq=0, pretrain_flag=False, output_is_speed=False, load_model_flag=False, ):
+def train(model, env, total_timesteps, output_dir="", int_save_freq=0, pretrain_flag=False, output_is_speed=False, load_model_flag=False,):
     if (output_dir == ""):
         save_path = None
     else:
-        save_path = os.path.join(output_dir, "model_9_11_final_our_model_3e7.zip")
+        save_path = os.path.join(output_dir, f"model_{NOWTIME_M_D}_final_our_model_{total_timesteps}_{int_save_freq}.zip")
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
@@ -118,17 +118,12 @@ def train(model, env, total_timesteps, output_dir="", int_save_freq=0, pretrain_
     # print(model.policy_pi.trainable_variables)
     print(f'MPI.COMM_WORLD.Get_rank() is {MPI.COMM_WORLD.Get_rank()} , size is {MPI.COMM_WORLD.Get_size()}')
     if MPI.COMM_WORLD.Get_rank() == 0:
-        print("%d, %d"%(1, MPI.COMM_WORLD.Get_rank()))
         with open('E:\VScode\motion-imitation\dataset\expertdata_10_600.pkl', 'rb') as f:
             file_data = f.read()
             traj_data = MPI.pickle.loads(file_data)
-        print("%d, %d"%(2, MPI.COMM_WORLD.Get_rank()))
         # dataset = ExpertDataset(traj_data=traj_data, )
-        # print("%d, %d"%(3, MPI.COMM_WORLD.Get_rank()))
         # model.pretrain(dataset, n_epochs=100, learning_rate=1e-4, adam_epsilon=1e-8)  
-        print("%d, %d"%(4, MPI.COMM_WORLD.Get_rank()))
     else:
-        print("%d, %d"%(1, MPI.COMM_WORLD.Get_rank()))
         traj_data = None
 
     # 广播读取的 traj_data 给其他进程
@@ -146,7 +141,7 @@ def train(model, env, total_timesteps, output_dir="", int_save_freq=0, pretrain_
     if load_model_flag:
         load_file_path = f'output/expertdata_model/expertdata_10.zip'
         model.load_parameters(load_file_path)
-    model.adam.sync()
+    # model.adam.sync()
     model.learn(total_timesteps=total_timesteps, save_path=save_path,
                 callback=callbacks, output_is_speed=output_is_speed)
 
@@ -209,7 +204,7 @@ def main():
               int_save_freq=args.int_save_freq,
               pretrain_flag=args.pretrain_flag,
               output_is_speed=args.output_is_speed,
-              load_model_flag=args.load_model_flag)
+              load_model_flag=args.load_model_flag,)
     else:
         assert False, "Unsupported mode: " + args.mode
 

@@ -261,7 +261,8 @@ class PPOImitation(pposgd_simple.PPO1):
 
                 # Prepare for rollouts
                 seg_gen = traj_segment_generator(self.policy_pi, self.env, self.timesteps_per_actorbatch,
-                                                 callback=callback, output_is_speed=output_is_speed)
+                                                 callback=callback)
+                                                #  callback=callback, output_is_speed=output_is_speed)
 
                 episodes_so_far = 0
                 timesteps_so_far = 0
