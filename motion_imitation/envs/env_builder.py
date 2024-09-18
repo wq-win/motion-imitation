@@ -36,7 +36,7 @@ from motion_imitation.envs.sensors import sensor_wrappers
 from motion_imitation.envs.sensors import robot_sensors
 from motion_imitation.envs.utilities import controllable_env_randomizer_from_config
 from motion_imitation.robots import laikago
-from motion_imitation.robots import a1
+# from motion_imitation.robots import a1
 from motion_imitation.robots import robot_config
 
 

@@ -41,7 +41,8 @@ from stable_baselines.ppo1 import pposgd_simple
 
 from motion_imitation.learning.imitation_runners import traj_segment_generator
 
-
+from stable_baselines.gail.dataset.dataset import ExpertDataset
+import gym
 def add_vtarg_and_adv(seg, gamma, lam):
   """
   Compute target value using TD(lambda) estimator, and advantage with GAE(lambda)
@@ -226,10 +227,24 @@ class PPOImitation(pposgd_simple.PPO1):
                                                  losses)
 
       return
+    def pretrain(self, dataset, n_epochs=10, learning_rate=0.0001, adam_epsilon=1e-8, val_interval=None):
+        
+        return super().pretrain(dataset, n_epochs, learning_rate, adam_epsilon, val_interval)
+       
 
     def learn(self, total_timesteps, callback=None, log_interval=100, tb_log_name="PPO1",
-              reset_num_timesteps=True, save_path=None, save_iters=20):
-        is_root = (MPI.COMM_WORLD.Get_rank() == 0)
+              reset_num_timesteps=True, save_path=None, save_iters=20, output_is_speed=False,):  
+        # if MPI.COMM_WORLD.Get_rank() == 0:
+        #     with open('E:\VScode\motion-imitation\dataset\expertdata_10_600.pkl', 'rb') as f:
+        #         file_data = f.read()
+        #         traj_data = MPI.pickle.loads(file_data)
+        #     dataset = ExpertDataset(traj_data=traj_data, )
+        #     self.pretrain(dataset, n_epochs=100, learning_rate=1e-4, adam_epsilon=1e-8)
+        # else:
+        #     pass
+        # self.adam.sync()
+            
+        is_root = (MPI.COMM_WORLD.Get_rank() == 0)                   
         new_tb_log = self._init_num_timesteps(reset_num_timesteps)
         callback = self._init_callback(callback)
 
@@ -246,7 +261,7 @@ class PPOImitation(pposgd_simple.PPO1):
 
                 # Prepare for rollouts
                 seg_gen = traj_segment_generator(self.policy_pi, self.env, self.timesteps_per_actorbatch,
-                                                 callback=callback)
+                                                 callback=callback, output_is_speed=output_is_speed)
 
                 episodes_so_far = 0
                 timesteps_so_far = 0

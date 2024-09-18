@@ -418,8 +418,11 @@ class ImitationTask(object):
         j_vel_diff = j_vel_ref - j_vel_sim
         j_vel_err = j_vel_diff.dot(j_vel_diff)
         vel_err += j_vel_err
-
-    vel_reward = np.exp(-self._velocity_err_scale * vel_err)
+    
+    if -self._velocity_err_scale * vel_err <= -700:
+      vel_reward = 0
+    else: 
+      vel_reward = np.exp(-self._velocity_err_scale * vel_err)
 
     return vel_reward
 
@@ -471,7 +474,10 @@ class ImitationTask(object):
 
         end_eff_err += end_pos_err
 
-    end_effector_reward = np.exp(-self._end_effector_err_scale * end_eff_err)
+    if -self._end_effector_err_scale * end_eff_err <= -700:
+      end_effector_reward = 0
+    else: 
+      end_effector_reward = np.exp(-self._end_effector_err_scale * end_eff_err)
 
     return end_effector_reward
 
@@ -493,7 +499,12 @@ class ImitationTask(object):
     root_rot_err = root_rot_diff_angle * root_rot_diff_angle
 
     root_pose_err = root_pos_err + 0.5 * root_rot_err
-    root_pose_reward = np.exp(-self._root_pose_err_scale * root_pose_err)
+    # root_pose_reward = np.exp(-self._root_pose_err_scale * root_pose_err)
+    
+    if -self._root_pose_err_scale * root_pose_err <= -700:
+      root_pose_reward = 0
+    else: 
+      root_pose_reward = np.exp(-self._root_pose_err_scale * root_pose_err)
 
     return root_pose_reward
 
@@ -519,7 +530,10 @@ class ImitationTask(object):
     root_ang_vel_err = root_ang_vel_diff.dot(root_ang_vel_diff)
 
     root_velocity_err = root_vel_err + 0.1 * root_ang_vel_err
-    root_velocity_reward = np.exp(-self._root_velocity_err_scale *
+    if -self._root_velocity_err_scale * root_velocity_err < -700:
+      root_velocity_reward = 0
+    else:
+      root_velocity_reward = np.exp(-self._root_velocity_err_scale *
                                   root_velocity_err)
 
     return root_velocity_reward

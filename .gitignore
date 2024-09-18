@@ -53,3 +53,5 @@ motion_imitation/robots/__pycache__/robot_config.cpython-37.pyc
 motion_imitation/learning/__pycache__/ppo_imitation.cpython-37.pyc
 trot/dataset/trot_data_V_07_04_100000_100.pkl
 motion_imitation/learning/__pycache__/ppo_imitation.cpython-37.pyc
+dataset/augmentation_pace_data_100000_100.pkl
+dataset/augmentation_trot_data_100000_100.pkl

@@ -50,7 +50,8 @@ def test(model, env):
         o, r, done, info = env.step(a)
         # print(f'a:\n{a}')
         # print(f'oma:\n{o[48:60]}')
-        a_list.append(a)
+        # a_list.append(a)
+        a_list.append(o[12:24])
         oma_list.append(o[48:60])
         if done:
             o = env.reset()
@@ -75,8 +76,8 @@ model.load_parameters("motion_imitation/data/policies/dog_pace.zip")
 test(model=model, env=env)
 oma_list = np.array(oma_list)
 a_list = np.array(a_list)
-a_list[:, np.array([1, 4, 7, 10])] += 0.67
-a_list[:, np.array([2, 5, 8, 11])] += -1.25
+# a_list[:, np.array([1, 4, 7, 10])] += 0.67
+# a_list[:, np.array([2, 5, 8, 11])] += -1.25
 for i in range(12):
         plt.subplot(4, 3, i+1)
         plt.plot(range(len(oma_list[102:402, i]),), oma_list[102:402, i], label=f'oma:{i}', linestyle='-')

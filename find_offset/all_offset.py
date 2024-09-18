@@ -26,9 +26,14 @@ def oma_to_pma(oma):
 def oma_to_right_action(oma):
     action = copy.deepcopy(oma)
     # 0,6 -= -0.00325897 ; 3,9 -= 0.0034551
-    action[np.array([0, 3, 6, 9])] = -oma[np.array([0, 3, 6, 9])]
-    action[np.array([1, 4, 7, 10])] -= 0.67  # 0.6742553
-    action[np.array([2, 5, 8, 11])] -= -1.25  # -1.25115246
+    if len(oma.shape) > 1 and oma.shape[0] >= 1:
+        # action[:, np.array([0, 3, 6, 9])] = -oma[:, np.array([0, 3, 6, 9])]
+        action[:, np.array([1, 4, 7, 10])] -= 0.67  # 0.6742553
+        action[:, np.array([2, 5, 8, 11])] -= -1.25  # -1.25115246
+    else:
+        # action[np.array([0, 3, 6, 9])] = -oma[np.array([0, 3, 6, 9])]
+        action[np.array([1, 4, 7, 10])] -= 0.67  # 0.6742553
+        action[np.array([2, 5, 8, 11])] -= -1.25  # -1.25115246
     return action
 
 

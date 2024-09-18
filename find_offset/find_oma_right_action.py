@@ -1,14 +1,13 @@
-import pickle
-
-import numpy as np
-from motion_imitation.envs import env_builder
-from mpi4py import MPI
 import os
 import inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 print(parentdir)
 os.sys.path.insert(0, parentdir)
+import pickle
+import numpy as np
+from motion_imitation.envs import env_builder
+from mpi4py import MPI
 from pretrain import pretrain_fc_deep 
 
 
@@ -19,7 +18,7 @@ mode = "test"
 enable_env_rand = ENABLE_ENV_RANDOMIZER and (mode != "test")
 visualize = True
 def main():
-    with open('dataset/o_a_collect_nums_1000.pkl', 'rb') as f:
+    with open('dataset/o_a_collect_nums_1.pkl', 'rb') as f:
             allresult = pickle.load(f)
     o = np.array(allresult['o'], dtype=float)
 

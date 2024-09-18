@@ -1,3 +1,4 @@
+import copy
 import os
 import inspect
 import pickle
@@ -19,9 +20,22 @@ from collect_test import test_pma
 
 TIMESTEPS_PER_ACTORBATCH = 4096
 OPTIM_BATCHSIZE = 256
-ppo_ma_track_list = []
 NOWTIME = time.strftime("%m_%d_%H_%M_%S", time.localtime())
 
+def pma_to_oma(pma):
+    oma = copy.deepcopy(pma)
+    # oma[np.array([0, 6])] = -pma[np.array([0, 6])]
+    oma[np.array([0, 6])] -= 0.30
+    oma[np.array([3, 9])] += 0.30
+    oma[np.array([1, 4, 7, 10])] += 0.6
+    oma[np.array([2, 5, 8, 11])] += -0.66
+    return oma
+
+def oma_to_right_action(oma):
+    action = copy.deepcopy(oma)
+    action[np.array([1, 4, 7, 10])] -= 0.67
+    action[np.array([2, 5, 8, 11])] -= -1.25
+    return action
 
 def build_model(env, num_procs, timesteps_per_actorbatch, optim_batchsize, output_dir):
     policy_kwargs = {
@@ -54,19 +68,24 @@ def build_model(env, num_procs, timesteps_per_actorbatch, optim_batchsize, outpu
 
 def test(model, env, num_episodes=None):
     o = env.reset()
-    episode_length = 600
-    collect_episodes = 1
-    i = 0
+    # episode_length = 600
+    # collect_episodes = 1
+    # i = 0
     while True:
-        print(f'i:{i}/{episode_length * collect_episodes}', end="\r")
-        ppo_ma_track_list.append(o[48:60])
+        # o[:48] = 0
+        # o[60:] = 0
+        # print(f'i:{i}/{episode_length * collect_episodes}', end="\r")
         a, _ = model.predict(o, deterministic=True)
+        # a = pma_to_oma(a)
+        # a = oma_to_right_action(a)
         o, r, done, info = env.step(a)
+        print(r)
         if done:
+            print(f'done:{done}')
             o = env.reset()
         # if i >= episode_length * collect_episodes:
         #     break  
-        i += 1  
+        # i += 1  
     env.close()
 
 
@@ -91,23 +110,23 @@ def main():
         output_dir="output",
     )
 
-    # model.load_parameters("E:\VScode\motion-imitation\output\model_copy.zip")
-    model.load_parameters('E:\VScode\motion-imitation\output\model_no_pretrain.zip')
-    # intermedate\model_2024_07_19_18_58_13_79998976_steps
-    # intermedate\model_2024_07_19_18_58_13_159997952_steps
+    # model.load_parameters('E:\VScode\motion-imitation\output\pretrained_model\pretrained_model_100_steps_2024_07_24_13_17_27.zip')
+    # model.load_parameters('E:\VScode\motion-imitation\output\pretrained_model\pretrained_model_100_steps_2024_08_09_12_18_52.zip')
+    # model.load_parameters('E:\VScode\motion-imitation\output\pretrained_model\pretrained_model_100_steps_2024_08_09_16_05_39.zip')
+
+    # model.load_parameters('E:\VScode\motion-imitation\output\model_8_01_no_3trick_4e7_no_load.zip')
+    # model.load_parameters('E:\VScode\motion-imitation\output\model_8_02_no_3trick_4e7_load_pretrain.zip')
+    model.load_parameters('E:\VScode\motion-imitation\motion_imitation\data\policies\dog_trot.zip')
+    # model.load_parameters('E:\VScode\motion-imitation\output\model_8_04_no_load_2e8.zip')
+    # model.load_parameters('E:\VScode\motion-imitation\output\model_8_11_load_2e8.zip')
+    
+    model.load_parameters('E:\VScode\motion-imitation\output\expertdata_model\expertdata_10.zip')
+    # model.load_parameters('E:\VScode\motion-imitation\output\expertdata_model\expertdata_100.zip')
+    # model.load_parameters('E:\VScode\motion-imitation\output\expertdata_model\expertdata_1000.zip')
+
     test(model=model, env=env, num_episodes=1000)
 
 
+
 if __name__ == "__main__":
-    # this branch environment had modified.
     main()
-    ppo_ma_track_array = np.array(ppo_ma_track_list)
-    ma_v, ma_v_norm, ma_weight = collect_pma_data.calculate_ring_velocity(ppo_ma_track_array)
-    test_pma.ploter(ppo_ma_track_array, ma_v)
-    allresult = {'input': ppo_ma_track_array, 'output': ma_v, }
-    file_path = f'test_model/ppo_track{NOWTIME}.pkl'
-    directory = os.path.dirname(file_path)
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-    with open(file_path, 'wb') as f:
-        pickle.dump(allresult, f)

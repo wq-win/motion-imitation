@@ -123,7 +123,6 @@ def main():
             joint_velocity_average = joint_velocity_array[-1,:]
         else:
             joint_velocity_average = np.average(joint_velocity_array, axis=0)
-        
         without_error_oma = oma + joint_velocity_average * TIMESTEP * DISPLACEMENT_RATE
         without_error_oma_action = oma_to_right_action(without_error_oma)
         without_error_action_list.append(without_error_oma_action)
@@ -148,7 +147,6 @@ def main():
         oma_list.append(o[48:60])
         # if d:
         #     o = env.reset()
-        #     print('done')
 
     env.close()
     return test_model
@@ -196,9 +194,7 @@ if __name__ == '__main__':
     plt.show()
 
     # with open('dataset/save_data_V4_100000_10.pkl', 'rb') as f:
-    
-    with open(os.path.join(parentdir, 'output/pretrained_model/pretrained_model_100_steps.zip'), 'rb') as f:
-    # with open(os.path.join(parentdir, 'collect_data/dataset/trot_data_V_07_04_10_100.pkl'), 'rb') as f:
+    with open(os.path.join(parentdir, 'collect_data/dataset/trot_data_V_07_04_10_100.pkl'), 'rb') as f:
     # with open(os.path.join(parentdir, 'collect_data/dataset/save_data_V5_model_06_21_11_06_43.pkl'), 'rb') as f:
         allresult = pickle.load(f)
 

@@ -47,10 +47,10 @@ pace = [
 pace_array = np.array(pace)
 
 # 
-p_motor_angle = pace_array[:, 7:]
-p_motor_angle = np.tile(p_motor_angle, (4, 1))
-p_motor_angle_next = np.vstack((p_motor_angle[1:, :], p_motor_angle[:1, :]))
-p_motor_angle_v = p_motor_angle_next - p_motor_angle
+pma = pace_array[:, 7:]
+pma = np.tile(pma, (4, 1))
+p_motor_angle_next = np.vstack((pma[1:, :], pma[:1, :]))
+p_motor_angle_v = p_motor_angle_next - pma
 
 with open('dataset/o_a_collect_nums_1.pkl', 'rb') as f:
             allresult = pickle.load(f)
@@ -58,13 +58,16 @@ o = np.array(allresult['o'], dtype=float)
 # a = np.array(allresult['a'])
 OFF_SET = 5
 OFF_SET_INREGULAR = 60
-o_motor_angle = o[OFF_SET + OFF_SET_INREGULAR : OFF_SET + OFF_SET_INREGULAR + 39*2, 48:60]
-o_motor_angle_offset = o[OFF_SET + OFF_SET_INREGULAR : OFF_SET + OFF_SET_INREGULAR + 39*2, 48:60]
-o_motor_angle_offset[:, np.array([0, 6])] = -o_motor_angle_offset[:, np.array([0, 6])]
-o_motor_angle_offset[:, np.array([1, 4, 7, 10])] -= 0.6
-o_motor_angle_offset[:, np.array([2, 5, 8, 11])] -= -0.66
-o_motor_angle_offset_next = np.vstack((o_motor_angle_offset[1:, :], o_motor_angle_offset[:1, :]))
-o_motor_angle_offset_v = o_motor_angle_offset_next - o_motor_angle_offset
+oma = o[OFF_SET + OFF_SET_INREGULAR : OFF_SET + OFF_SET_INREGULAR + 39*2, 48:60]
+oma_offset = o[OFF_SET + OFF_SET_INREGULAR : OFF_SET + OFF_SET_INREGULAR + 39*2, 48:60]
+oma_offset[:, np.array([0, 6])] = -oma_offset[:, np.array([0, 6])]
+oma_offset[:, np.array([0, 6])] -= 0.025
+oma_offset[:, np.array([3])] -= 0.05
+oma_offset[:, np.array([9])] += 0.025
+oma_offset[:, np.array([1, 4, 7, 10])] -= 0.6
+oma_offset[:, np.array([2, 5, 8, 11])] -= -0.66
+o_motor_angle_offset_next = np.vstack((oma_offset[1:, :], oma_offset[:1, :]))
+o_motor_angle_offset_v = o_motor_angle_offset_next - oma_offset
 
 
 
@@ -116,9 +119,9 @@ def multi_trajectory_ploter():
 plt.figure()
 for i in range(12):
     plt.subplot(4, 3, i+1)
-    plt.plot(range(len(p_motor_angle[:, i]),), p_motor_angle[:, i], label=f'pma:{i}', linestyle='--')
+    plt.plot(range(len(pma[:, i]),), pma[:, i], label=f'pma:{i}', linestyle='--')
     # plt.plot(range(len(o_motor_angle[:, i])), o_motor_angle[:, i], label=f'oma:{i}', linestyle='-')
-    plt.plot(range(0, len(o_motor_angle_offset[:, i]) * 2, 2), o_motor_angle_offset[:, i], label=f'oma_offset:{i}', linestyle=':')
+    plt.plot(range(0, len(oma_offset[:, i]) * 2, 2), oma_offset[:, i], label=f'oma_offset:{i}', linestyle=':')
     plt.legend()
 plt.savefig('result/compare/pma_oma.png', dpi=300)
 plt.show()   
