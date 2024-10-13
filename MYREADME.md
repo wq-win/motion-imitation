@@ -18,6 +18,7 @@ E:\VScode\motion-imitation\.venv\Scripts\python.exe test/step3_pretrain.py --pre
         + 83-86 lines
 
 ### Run  
+mpiexec -n 8 python /home/user2020/VScodeProjects/motion-imitation/motion_imitation/our_run_2.py --visualize
 mpiexec -n 4 E:\VScode\motion-imitation\.venv\Scripts\python.exe motion_imitation/our_run_2.py
 mpiexec -n 8 E:\VScode\motion-imitation\.venv\Scripts\python.exe motion_imitation/our_run_2.py --visualize
 mpiexec -n 8 E:\VScode\motion-imitation\.venv\Scripts\python.exe motion_imitation/our_run_2.py  --pretrain_flag True --total_timesteps 40000000

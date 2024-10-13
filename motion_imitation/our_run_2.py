@@ -118,7 +118,9 @@ def train(model, env, total_timesteps, output_dir="", int_save_freq=0, pretrain_
     # print(model.policy_pi.trainable_variables)
     print(f'MPI.COMM_WORLD.Get_rank() is {MPI.COMM_WORLD.Get_rank()} , size is {MPI.COMM_WORLD.Get_size()}')
     if MPI.COMM_WORLD.Get_rank() == 0:
-        with open('E:\VScode\motion-imitation\dataset\expertdata_10_600.pkl', 'rb') as f:
+        # with open('E:\VScode\motion-imitation\dataset\expertdata_10_600.pkl', 'rb') as f:
+        with open('/home/user2020/VScodeProjects/motion-imitation/dataset/expertdata_10_600.pkl', 'rb') as f:
+
             file_data = f.read()
             traj_data = MPI.pickle.loads(file_data)
         # dataset = ExpertDataset(traj_data=traj_data, )
