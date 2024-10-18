@@ -79,7 +79,7 @@ def test(model, env, num_episodes=None):
         # a = pma_to_oma(a)
         # a = oma_to_right_action(a)
         o, r, done, info = env.step(a)
-        print(r)
+        # print(r)
         if done:
             print(f'done:{done}')
             o = env.reset()
@@ -116,14 +116,15 @@ def main():
 
     # model.load_parameters('E:\VScode\motion-imitation\output\model_8_01_no_3trick_4e7_no_load.zip')
     # model.load_parameters('E:\VScode\motion-imitation\output\model_8_02_no_3trick_4e7_load_pretrain.zip')
-    model.load_parameters('E:\VScode\motion-imitation\motion_imitation\data\policies\dog_trot.zip')
+    # model.load_parameters('E:\VScode\motion-imitation\motion_imitation\data\policies\dog_trot.zip')
     # model.load_parameters('E:\VScode\motion-imitation\output\model_8_04_no_load_2e8.zip')
     # model.load_parameters('E:\VScode\motion-imitation\output\model_8_11_load_2e8.zip')
     
-    model.load_parameters('E:\VScode\motion-imitation\output\expertdata_model\expertdata_10.zip')
+    # model.load_parameters('E:\VScode\motion-imitation\output\expertdata_model\expertdata_10.zip')
     # model.load_parameters('E:\VScode\motion-imitation\output\expertdata_model\expertdata_100.zip')
     # model.load_parameters('E:\VScode\motion-imitation\output\expertdata_model\expertdata_1000.zip')
-
+    # model.load_parameters('E:\VScode\motion-imitation\output\intermedate\model_2024_09_18_19_08_50_193998848_steps.zip')
+    model.load_parameters('E:\VScode\motion-imitation\output\model_09_18_final_our_model_200000000.0_1000000.0.zip')
     test(model=model, env=env, num_episodes=1000)
 
 
