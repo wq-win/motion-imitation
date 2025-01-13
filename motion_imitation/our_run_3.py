@@ -31,7 +31,6 @@ from motion_imitation.envs import env_builder as env_builder
 from motion_imitation.learning import imitation_policies as imitation_policies
 from motion_imitation.learning import ppo_imitation as ppo_imitation
 from motion_imitation.robots import a1
-from motion_imitation.robots import robot_config
 
 from stable_baselines.common.callbacks import CheckpointCallback
 
@@ -84,7 +83,7 @@ def train(model, env, total_timesteps, output_dir="", int_save_freq=0):
   if (output_dir == ""):
     save_path = None
   else:
-    save_path = os.path.join(output_dir, "model_1_10.zip")
+    save_path = os.path.join(output_dir, "model_1_13_a1.zip")
     if not os.path.exists(output_dir):
       os.makedirs(output_dir)
   
@@ -114,6 +113,7 @@ def test(model, env, num_procs, num_episodes=None):
   o = env.reset()
   while episode_count < num_local_episodes:
     a, _ = model.predict(o, deterministic=True)
+    # a *= 0
     o, r, done, info = env.step(a)
     curr_return += r
 
@@ -136,12 +136,12 @@ def test(model, env, num_procs, num_episodes=None):
 def main():
   arg_parser = argparse.ArgumentParser()
   arg_parser.add_argument("--seed", dest="seed", type=int, default=None)
-  arg_parser.add_argument("--mode", dest="mode", type=str, default="test")
-  arg_parser.add_argument("--motion_file", dest="motion_file", type=str, default="motion_imitation/data/motions/dog_pace.txt")
-  arg_parser.add_argument("--visualize", dest="visualize", action="store_true", default=True)
+  arg_parser.add_argument("--mode", dest="mode", type=str, default="train")
+  arg_parser.add_argument("--motion_file", dest="motion_file", type=str, default="motion_imitation/data/motions/pace.txt")
+  arg_parser.add_argument("--visualize", dest="visualize", action="store_true", default=False)
   arg_parser.add_argument("--output_dir", dest="output_dir", type=str, default="output")
   arg_parser.add_argument("--num_test_episodes", dest="num_test_episodes", type=int, default=None)
-  arg_parser.add_argument("--model_file", dest="model_file", type=str, default="motion_imitation/data/policies/dog_pace.zip")
+  arg_parser.add_argument("--model_file", dest="model_file", type=str, default="")
   arg_parser.add_argument("--total_timesteps", dest="total_timesteps", type=int, default=2e8)
   arg_parser.add_argument("--int_save_freq", dest="int_save_freq", type=int, default=0) # save intermediate model every n policy steps
 
@@ -156,7 +156,9 @@ def main():
                                         mode=args.mode,
                                         enable_randomizer=enable_env_rand,
                                         enable_rendering=args.visualize,
+                                        # if_trajectory_generator=False,
                                         robot_class=a1.A1)
+                                        # )
 #   env = env_builder.build_regular_env(robot_class=a1.A1, 
 #                                       motor_control_mode=robot_config.MotorControlMode.POSITION, 
 #                                       enable_rendering=args.visualize)
@@ -170,7 +172,7 @@ def main():
   
   if args.model_file != "":
     model.load_parameters(args.model_file)
-
+  # model.load_parameters('E:\VScode\motion-imitation\motion_imitation\data\policies\dog_pace.zip')
   if args.mode == "train":
       train(model=model, 
             env=env, 
